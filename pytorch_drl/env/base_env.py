@@ -4,15 +4,16 @@
 import abc
 
 
-class BaseAgent(abc.ABC):
-
-    def __init__(self):
-        pass
+class BaseEnv(abc.ABC):
 
     @abc.abstractmethod
-    def take_action(self):
+    def reset(self):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def explore_env(self):
+    def step(self, action):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def close(self):
         raise NotImplementedError
