@@ -3,7 +3,7 @@
 
 import random
 
-from pytorch_drl.agent import BaseAgent
+from .base_agent import BaseAgent
 
 
 class DQNAgent(BaseAgent):

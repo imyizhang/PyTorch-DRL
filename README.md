@@ -24,3 +24,10 @@ PyTorch-DRL is
 $ pip install pytorch-drl
 ```
 
+
+
+## Related Projects
+
+* Inspired by [Tianshou](https://github.com/thu-ml/tianshou)
+* [ElegantRL](https://github.com/AI4Finance-Foundation/ElegantRL)
+

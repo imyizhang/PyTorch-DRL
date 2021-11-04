@@ -10,7 +10,7 @@ class QNet(torch.nn.Module):
 
     def __init__(self, approximator):
         super().__init__()
-        self.layers = torch.nn.Sequential(
+        self.approximator = torch.nn.Sequential(
             torch.nn.Conv2d(3, 16, kernel_size=5, stride=2),
             torch.nn.BatchNorm2d(16),
             torch.nn.ReLU(inplace=True),
@@ -27,28 +27,5 @@ class QNet(torch.nn.Module):
     def forward(self, state):
         return self.approximator(state)
 
-
-class QNetActor(BaseActor):
-
-    def __init__(self):
-        super().__init__()
-        self.approximator = QNet()
-
-    def forward(self, state):
-        return self.approximator(state)
-
     def configure_optimizer(self):
         return torch.optim.RMSprop(self.parameters())
-
-
-class QNetCritic(BaseCritic):
-
-    def __init__(self):
-        super().__init__()
-        self.approximator = QNet()
-
-    def forward(self, state):
-        return self.approximator(state)
-
-    def configure_optimizer(self):
-        return None

@@ -18,19 +18,19 @@ def parse_args():
     return args
 
 def main(args):
+    # net
     actor = drl.net.QNet()
     critic = drl.net.QNet()
+    # agent
     agent = drl.agent.DQNAgent(
-        args.device,
-        args.buffer_capacity,
-        args.batch_size,
-        args.sync_step,
-        args.discount_factor,
         actor,
         critic,
     )
+    # env
     env = drl.env.GymEnv(args.env)
+    # trainer
     trainer = drl.trainer.OffPolicyTrainer()
+    # run
     trainer(agent, env)
 
 if __name__ == '__main__':
