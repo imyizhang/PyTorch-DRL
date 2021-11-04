@@ -30,7 +30,6 @@ PyTorch-DRL is
 │   └── customized_trainer.py
 ├── main.py
 └── requirements.txt
-
 ```
 
 #### Demo
