@@ -9,7 +9,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setuptools.setup(
     name='PyTorch-DRL',
-    version='0.0.1',
+    version='0.0.2',
     description='A simple PyTorch wrapper making deep reinforcement learning much easier',
     author='Yi Zhang',
     author_email='yizhang.dev@gmail.com',
