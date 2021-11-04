@@ -8,13 +8,14 @@ class BaseTrainer(abc.ABC):
 
     def __init__(
         self,
-        num_episodes,
-        agent,
         env,
+        agent,
+        num_episodes,
     ):
-        self.num_episodes = num_episodes
-        self.agent = agent
         self.env = env
+        self.agent = agent
+        self.num_episodes = num_episodes
+        self.episode_duration = []
 
     def __call__(self):
         raise NotImplementedError

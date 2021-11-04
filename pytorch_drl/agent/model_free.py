@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import random
+import math
+
+import torch
 
 from .base_agent import BaseAgent
 
@@ -11,54 +14,66 @@ class DQNAgent(BaseAgent):
     def __init__(
         self,
         device,
-        buffer_capacity,
-        batch_size,
-        sync_step,
-        discount_factor,
         actor,
         critic,
+        discount_factor=0.999,
+        buffer_capacity=10000,
+        batch_size=128,
+        sync_step=10,
+        exploration_rate=0.9,
+        exploration_rate_min=0.05,
+        exploration_rate_decay=200,
     ):
         super().__init__(
             device,
+            actor,
+            critic,
+            discount_factor,
             buffer_capacity,
             batch_size,
             sync_step,
-            discount_factor,
-            actor,
-            critic,
         )
+        self.exploration_rate = exploration_rate
+        self.exploration_rate_min = exploration_rate_min
+        self.exploration_rate_decay = exploration_rate_decay
+        self.curr_step = 0
 
     def act(self, state):
         # explore
         if random.random() < self.exploration_rate:
-            action_idx = rd.randint(self.action_dim)
+            action = self.actor.configure_sampler().to(self.device)
         # exploit
         else:
             with torch.no_grad():
-                states = torch.as_tensor((state,), dtype=torch.float32, device=self.device)
-                action = self.actor(states)[0]
-                a_int = action.argmax(dim=0).detach().cpu().numpy()
-        return a_int
+                action = self.actor(state).max(dim=1, keepdim=True).indices
+        # increment step
+        self.curr_step += 1
+        # decrease exploration rate
+        self._exploration_rate_scheduler()
+        return action
+
+    def _exploration_rate_scheduler(self):
+        # exponential decay
+        self.exploration_rate = self.exploration_rate_min + \
+        (self.exploration_rate - self.exploration_rate_min) * \
+        math.exp(-1. * self.curr_step / self.exploration_rate_decay)
+
+    def train(self):
+        self.actor.train()
+        self.critic.eval()
 
     def learn(self):
         state, action, reward, done, next_state = self.recall()
-
-
-
         # compute Q(s, a)
-        Q = self.actor(state).gather(1, action)
-
+        Q = self.actor(state).gather(dim=1, index=action)
         # compute V(s') := max_{a'} Q(s', a')
         with torch.no_grad():
-            V = torch.zeros(self.batch_size, device=self.device)
-            V[non_final_mask] = self.critic(non_final_next_states).max(1)[0].detach()
+            V = self.critic(next_state).max(dim=1, keepdim=True).values
         # compute expected Q(s, a) := r(s, a) + gamma * V(s')
         Q_expected = reward + self.gamma * V
-
-
-        # optimize the model
+        # optimize the actor
         self.actor_optim.zero_grad()
-        loss = self.criterion(Q, expected_Q.unsqueeze(1))
+        loss = self.actor_criterion(Q, Q_expected)
         loss.backward()
         for param in self.actor.parameters():
             param.grad.data.clamp_(-1, 1)

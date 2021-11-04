@@ -9,13 +9,20 @@ from .base_env import BaseEnv
 
 class GymEnv(BaseEnv, gym.Wrapper):
 
-    def __init__(self, env):
+    def __init__(
+        self,
+        device,
+        env,
+        dtype=None,
+    ):
+        self.device = device
         self.env = gym.make(env) if isinstance(env, str) else env
         super().__init__(self.env)
+        self.dtype = dtype
 
     @property
-    def state_space_shape(self):
-        return self.env.observation_space.shape
+    def state_dim(self):
+        return self.env.observation_space.shape[0]
 
     @property
     def discrete(self):
@@ -29,22 +36,46 @@ class GymEnv(BaseEnv, gym.Wrapper):
             raise RuntimeError
 
     @property
-    def action_space_shape(self):
+    def action_dim(self):
         # discrete action space
         if self.discrete:
             return self.env.action_space.n
         # continuous action space
         else:
-            return self.env.action_space.shape
+            return self.env.action_space.shape[0]
 
-    def reset(self, dtype=torch.float32):
+    def reset(self):
         observation = self.env.reset()
-        state = torch.from_numpy(observation).to(dtype=dtype)
+        state = torch.as_tensor(
+            observation,
+            dtype=self.dtype,
+            device=self.device
+        ).view(1, self.state_dim)
         return state
 
-    def step(self, action, dtype=torch.float32):
+    def step(self, action):
+        # discrete action space
+        if self.discrete:
+            action = action.cpu().detach().item()
+        # continuous action space
+        else:
+            action = action.view(-1).cpu().detach().numpy()
         observation, reward, done, info = self.env.step(action)
-        state = torch.from_numpy(observation).to(dtype=dtype)
+        state = torch.as_tensor(
+            observation,
+            dtype=self.dtype,
+            device=self.device
+        ).view(1, self.state_dim)
+        reward = torch.as_tensor(
+            reward,
+            dtype=self.dtype,
+            device=self.device
+        ).view(1, 1)
+        done = torch.as_tensor(
+            done,
+            dtype=torch.bool,
+            device=self.device
+        ).view(1, 1)
         return state, reward, done, info
 
     def close(self):

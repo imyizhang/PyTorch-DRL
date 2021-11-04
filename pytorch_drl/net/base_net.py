@@ -22,6 +22,11 @@ class BaseActor(torch.nn.Module):
     def configure_optimizer(self):
         raise NotImplementedError
 
+    # return criterion
+    @abc.abstractmethod
+    def configure_criterion(self):
+        raise NotImplementedError
+
 
 class BaseCritic(torch.nn.Module):
 
@@ -37,4 +42,9 @@ class BaseCritic(torch.nn.Module):
     # return optimizer
     @abc.abstractmethod
     def configure_optimizer(self):
+        raise NotImplementedError
+
+    # return criterion
+    @abc.abstractmethod
+    def configure_criterion(self):
         raise NotImplementedError

@@ -2,6 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from .base_net import BaseActor, BaseCritic
-from .discrete import QNet
+from .discrete import QNetActor, QNetCritic
 
-__all__ = ('BaseActor', 'BaseCritic', 'QNet')
+__all__ = ('BaseActor', 'BaseCritic', 'QNetActor', 'QNetCritic')
