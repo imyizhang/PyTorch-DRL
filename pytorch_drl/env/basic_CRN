@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import torch
+import numpy as np
+from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+
+from .base_env import BaseEnv
+
+class basic_CRN:
+
+  """
+  Description:
+    The fluorescence level of a molecule is tracked dynamically and steered by sending light.
+  Source:
+    This environment corresponds to the Chemical Reaction Network introduced here: https://www.nature.com/articles/ncomms12546
+    To mimic the experiment is this paper, use:
+      dr = 0.0956
+      dp = 0.0214
+      km = 0.0116
+      br = 0.0965
+      A = np.array([[-dr,0,0],[dp+km,-dp-km,0],[0,dp,-dp]],dtype=np.float32)
+      B = np.array([[dr,br],[0,0],[0,0]],dtype=np.float3
+  """
+    
+    def __init__(self, A, B, seed):
+        # Env
+        self._A = A
+        self._B = B
+        self._state0 = None
+        self._state = None
+        self._state_history = np.array([], dtype=np.float32).reshape(B.shape[0],0)
+        # Agent
+        self._n_actions_taken = 0
+        # Simulation parameter
+        self._deltat_systemupdate = 0.2 # the simulation is run with 0.2 min time steps
+        self._deltat_actionupdate = 5 # a new action is chosen every 5 min
+        self._t_span = [0,self._deltat_actionupdate+self._deltat_systemupdate]
+        self._t_eval = np.arange(0, self._deltat_actionupdate+self._deltat_systemupdate, self._deltat_systemupdate)
+        self._seed = seed
+        
+    def reset(self):
+        np.random.seed(self._seed)
+        self._state0 = np.random.uniform(low=0, high=1, size=(self._B.shape[0],))
+        self._state = self._state0
+        self._state_history = self._state0.reshape(-1,1)
+    
+    def RHS(t, S, self, action):
+        return self._A @ S + self._B @ np.array([1, action], dtype=np.float32)
+    
+    def step(self, action):
+        interval_history = solve_ivp(RHS, t_span=self._t_span, y0=self._state, t_eval=self._t_eval, args=[action]).y
+        self._state_history = np.concatenate((self._state_history, interval_history[:,1:]),axis=1)
+        self._state = interval_history[:, -1]
+        self._n_actions_taken += 1
+    
+    def render(self):
+        t_plot = np.arange(0, self._n_actions_taken*self._deltat_actionupdate+self._deltat_systemupdate, self._deltat_systemupdate)
+        plt.plot(t_plot, self._state_history.T)
+        plt.xlabel('time')
+        plt.legend(['Input']+['_nolegend_']*(self._B.shape[0]-2)+['Output'])
+        plt.ylabel('concentration')
