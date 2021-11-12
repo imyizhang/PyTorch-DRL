@@ -64,6 +64,7 @@ class DQNAgent(BaseAgent):
 
     def learn(self):
         state, action, reward, done, next_state = self.recall()
+        # Q size -> (batch, 1)
         # compute Q(s, a)
         Q = self.actor(state).gather(dim=1, index=action)
         # compute V(s') := max_{a'} Q(s', a')

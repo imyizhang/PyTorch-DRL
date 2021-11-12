@@ -23,7 +23,6 @@ class basic_CRN:
       A = np.array([[-dr,0,0],[dp+km,-dp-km,0],[0,dp,-dp]],dtype=np.float32)
       B = np.array([[dr,br],[0,0],[0,0]],dtype=np.float3
   """
-    
     def __init__(self, A, B, seed):
         # Env
         self._A = A
@@ -45,16 +44,16 @@ class basic_CRN:
         self._state0 = np.random.uniform(low=0, high=1, size=(self._B.shape[0],))
         self._state = self._state0
         self._state_history = self._state0.reshape(-1,1)
-    
+
     def RHS(t, S, self, action):
         return self._A @ S + self._B @ np.array([1, action], dtype=np.float32)
-    
+
     def step(self, action):
         interval_history = solve_ivp(RHS, t_span=self._t_span, y0=self._state, t_eval=self._t_eval, args=[action]).y
         self._state_history = np.concatenate((self._state_history, interval_history[:,1:]),axis=1)
         self._state = interval_history[:, -1]
         self._n_actions_taken += 1
-    
+
     def render(self):
         t_plot = np.arange(0, self._n_actions_taken*self._deltat_actionupdate+self._deltat_systemupdate, self._deltat_systemupdate)
         plt.plot(t_plot, self._state_history.T)

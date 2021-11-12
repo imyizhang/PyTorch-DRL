@@ -21,6 +21,7 @@ class OffPolicyTrainer(BaseTrainer):
         )
 
     def __call__(self):
+        # set the agent in training mode
         self.agent.train()
         for episode in range(self.num_episodes):
             # initialize the env and state
