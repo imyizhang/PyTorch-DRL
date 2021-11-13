@@ -3,5 +3,6 @@
 
 from .base_env import BaseEnv
 from .gym_env import GymEnv
+from .crn_env import CRNEnv
 
-__all__ = ('BaseEnv', 'GymEnv')
+__all__ = ('BaseEnv', 'GymEnv', 'CRNEnv')

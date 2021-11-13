@@ -15,8 +15,6 @@ class MLP(torch.nn.Module):
             torch.nn.ReLU(inplace=True),
             torch.nn.Linear(hidden_dim, hidden_dim),
             torch.nn.ReLU(inplace=True),
-            torch.nn.Linear(hidden_dim, hidden_dim),
-            torch.nn.ReLU(inplace=True),
             torch.nn.Linear(hidden_dim, out_dim),
         )
 
