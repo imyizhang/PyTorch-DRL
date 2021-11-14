@@ -73,6 +73,7 @@ class GymEnv(gym.Wrapper):
         # discrete action space
         if self.discrete:
             action = action.cpu().detach().item()
+            action = int(action)
         # continuous action space
         else:
             action = action.view(-1).cpu().detach().numpy()

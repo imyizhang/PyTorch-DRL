@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from .env import Env, temp_seed
+from .env import Env
 from .ref_trajectory import ConstantRefTrajectory
 
 
@@ -91,9 +91,8 @@ class ContinuousTimeCRN(Env):
         return 20
 
     def action_sample(self) -> int:
-        with temp_seed(self._rng, self._seed):
-            # discrete action space
-            return self._rng.randint(0, self.action_dim)
+        # discrete action space
+        return self._rng.randint(0, self.action_dim)
 
     def reset(self) -> np.ndarray:
         self._trajectory = []
@@ -201,14 +200,13 @@ class ContinuousTimeCRNContinuous(ContinuousTimeCRN):
         return 1
 
     def action_sample(self) -> np.ndarray:
-        with temp_seed(self._rng, self._seed):
-            # continuous action space
-            return self._rng.uniform(0, 1, (self.action_dim,))
+        # continuous action space
+        return self._rng.uniform(0, 1, (self.action_dim,))
 
     def step(self, action: np.ndarray):
         if self.state is None:
             raise RuntimeError
-        action = float(action[0])
+        action = action[0]
         # simulation sampling rate
         delta = 0.1
         sol = solve_ivp(
