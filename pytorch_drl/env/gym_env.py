@@ -4,20 +4,18 @@
 import gym
 import torch
 
-from .base_env import BaseEnv
 
-
-class GymEnv(BaseEnv, gym.Wrapper):
+class GymEnv(gym.Wrapper):
 
     def __init__(
         self,
-        device,
         env,
-        dtype=None,
+        device,
+        dtype=torch.float32,
     ):
-        self.device = device
         self.env = gym.make(env) if isinstance(env, str) else env
         super().__init__(self.env)
+        self.device = device
         self.dtype = dtype
 
     @property
@@ -43,6 +41,24 @@ class GymEnv(BaseEnv, gym.Wrapper):
         # continuous action space
         else:
             return self.env.action_space.shape[0]
+
+    def action_sample(self):
+        action = self.env.action_space.sample()
+        # discrete action space
+        if self.discrete:
+            action = torch.as_tensor(
+                action,
+                dtype=self.dtype,
+                device=self.device
+            ).view(1, 1)
+        # continuous action space
+        else:
+            action = torch.as_tensor(
+                action,
+                dtype=self.dtype,
+                device=self.device
+            ).view(1, self.action_dim)
+        return action
 
     def reset(self):
         observation = self.env.reset()
@@ -77,6 +93,3 @@ class GymEnv(BaseEnv, gym.Wrapper):
             device=self.device
         ).view(1, 1)
         return state, reward, done, info
-
-    def close(self):
-        return self.env.close()

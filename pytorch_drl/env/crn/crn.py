@@ -8,14 +8,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from ..base_env import BaseEnv
+from .env import Env, temp_seed
 from .ref_trajectory import ConstantRefTrajectory
 
+
 def make(cls: str, **kwargs):
-    if cls == 'ContinuousTime':
+    if cls == 'CRN':
         return ContinuousTimeCRN(**kwargs)
+    elif cls == 'CRNContinuous':
+        return ContinuousTimeCRNContinuous(**kwargs)
     else:
         raise RuntimeError
+
 
 # refer to https://www.nature.com/articles/ncomms12546.pdf
 # continuous-time fold-change model:
@@ -46,7 +50,7 @@ A = np.exp(A_c * T_s)
 B = np.linalg.inv(A_c) @ (A - np.eye(A.shape[0])) @ B_c
 
 
-class ContinuousTimeCRN(BaseEnv):
+class ContinuousTimeCRN(Env):
     """
     ds / dt = A_c @ s + B_c @ a
     """
@@ -54,23 +58,17 @@ class ContinuousTimeCRN(BaseEnv):
     def __init__(
         self,
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
-        seed: int = 42,
         sampling_rate: float = 10,
     ) -> None:
+        super().__init__()
         # reference trajectory generator
         self.ref_trajectory = ref_trajectory
-        # random generator
-        self.rng = np.random.default_rng(seed)
         # sampling rate
         self._T_s = sampling_rate
         # initialize
         self._trajectory = []
         self._actions_taken = []
         self._steps_done = 0
-
-    @property
-    def state_dim(self) -> int:
-        return A_c.shape[1]
 
     @property
     def state(self) -> typing.Optional[typing.List[np.ndarray]]:
@@ -80,16 +78,22 @@ class ContinuousTimeCRN(BaseEnv):
             return None
 
     @property
+    def state_dim(self) -> int:
+        return A_c.shape[1]
+
+    @property
     def discrete(self) -> bool:
-        return False
+        return True
 
     @property
     def action_dim(self) -> int:
-        # continuous action space
-        return 1
+        # discrete action space
+        return 20
 
-    def action_sample(self) -> float:
-        return self.rng.uniform(0, 1)
+    def action_sample(self) -> int:
+        with temp_seed(self._rng, self._seed):
+            # discrete action space
+            return self._rng.randint(0, self.action_dim)
 
     def reset(self) -> np.ndarray:
         self._trajectory = []
@@ -104,10 +108,12 @@ class ContinuousTimeCRN(BaseEnv):
         a = np.array([1.0, action])
         return A_c @ y + B_c @ a
 
-    def step(self, action: float):
+    def step(self, action: int):
         if self.state is None:
             raise RuntimeError
-        delta = 0.1  # simulation sampling rate
+        action = (action + 1) / self.action_dim  # float
+        # simulation sampling rate
+        delta = 0.1
         sol = solve_ivp(
             self.func,
             (0, self._T_s + delta),
@@ -132,14 +138,19 @@ class ContinuousTimeCRN(BaseEnv):
     def render(self, mode: str = 'human') -> None:
         if self.state is None:
             raise RuntimeError
+        # simulation sampling rate
+        delta = 0.1
         # reference trajectory and tolerance margin
-        delta = 0.2
         t = np.arange(0, self._T_s * self._steps_done + delta, delta)
         ref_trajectory, tolerance_margin = self.ref_trajectory(t)
-        # sfGFP and intensity
+        # sfGFP
         T = np.arange(0, self._T_s * self._steps_done + self._T_s, self._T_s)
         R, P, G = np.stack(self._trajectory, axis=1)
-        u = np.array(self._actions_taken) * 100
+        # intensity
+        t_u = np.concatenate([
+           np.arange(self._T_s * i, self._T_s * (i + 1) + 1) for i in range(self._steps_done)
+        ])
+        u = np.array(self._actions_taken).repeat(self._T_s + 1) * 100
         # plot
         fig, axs = plt.subplots(
             nrows=2,
@@ -157,7 +168,7 @@ class ContinuousTimeCRN(BaseEnv):
             axs[0].plot(T, G, 'o-', label='G')
         axs[0].set_ylabel('sfGFP (1/min)')
         axs[0].legend()
-        axs[1].plot(T[1:], u)
+        axs[1].plot(t_u, u)
         axs[1].set_xlabel('Time (min)')
         axs[1].set_ylabel('intensity (%)')
         plt.show()
@@ -168,7 +179,7 @@ class ContinuousTimeCRN(BaseEnv):
         self._steps_done = 0
 
 
-class DiscreteTimeCRN(ContinuousTimeCRN):
+class ContinuousTimeCRNContinuous(ContinuousTimeCRN):
     """
     s' = A @ s + B @ a
     """
@@ -176,15 +187,30 @@ class DiscreteTimeCRN(ContinuousTimeCRN):
     def __init__(
         self,
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
-        seed: int = 42,
         sampling_rate: float = 10,
     ) -> None:
-        super().__init__(ref_trajectory, seed, sampling_rate)
+        super().__init__(ref_trajectory, sampling_rate)
 
-    def step(self, action: float):
+    @property
+    def discrete(self) -> bool:
+        return False
+
+    @property
+    def action_dim(self) -> int:
+        # continuous action space
+        return 1
+
+    def action_sample(self) -> np.ndarray:
+        with temp_seed(self._rng, self._seed):
+            # continuous action space
+            return self._rng.uniform(0, 1, (self.action_dim,))
+
+    def step(self, action: np.ndarray):
         if self.state is None:
             raise RuntimeError
-        delta = 0.2  # simulation sampling rate
+        action = float(action[0])
+        # simulation sampling rate
+        delta = 0.1
         sol = solve_ivp(
             self.func,
             (0, self._T_s + delta),
@@ -193,13 +219,28 @@ class DiscreteTimeCRN(ContinuousTimeCRN):
             args=(action,),
         )
         state = sol.y[:, -1]
-        reward = 0.0
-        done = False
-        info = {}
         self._trajectory.append(state)
         self._actions_taken.append(action)
         self._steps_done += 1
+        observation = state[2]
+        reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
+        reward = self.compute_reward(observation, reference)
+        done = False
+        info = {}
         return state, reward, done, info
+
+
+class DiscreteTimeCRN(ContinuousTimeCRN):
+    """
+    s' = A @ s + B @ a
+    """
+
+    def __init__(
+        self,
+        ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
+        sampling_rate: float = 10,
+    ) -> None:
+        super().__init__(ref_trajectory, sampling_rate)
 
 
 class MarginalParticleFilter():

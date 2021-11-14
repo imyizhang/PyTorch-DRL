@@ -11,7 +11,7 @@ class RefTrajectory(abc.ABC):
 
     def __init__(
         self,
-        scale: float = 1.0,
+        scale: float = 1.5,
         tolerance: float = 0.05,
     ) -> None:
         self.scale = scale

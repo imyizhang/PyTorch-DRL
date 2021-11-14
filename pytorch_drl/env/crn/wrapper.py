@@ -1,44 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from .crn import ContinuousTimeCRN
+import typing
+
+import numpy as np
+
+from .env import Env
 
 
-class Wrapper(ContinuousTimeCRN):
+class Wrapper(Env):
 
-    def __init__(self, env):
+    def __init__(self, env: Env):
         self.env = env
 
-    @property
-    def state_dim(self):
-        return self.env.state_dim
-
-    @property
-    def state(self):
-        return self.env.state
-
-    @property
-    def discrete(self):
-        return self.env.discrete
-
-    @property
-    def action_dim(self):
-        return self.env.action_dim
-
-    def action_sample(self):
-        return self.env.action_sample()
+    def seed(self, seed: typing.Optional[int] = None):
+        return self.env.seed(seed=seed)
 
     def reset(self):
         return self.env.reset()
 
-    def step(self, action):
+    def step(self, action: typing.Union[int, np.ndarray]):
         return self.env.step(action)
 
-    def compute_reward(self, achieved_goal, desired_goal):
-        return self.env.compute_reward(achieved_goal, desired_goal)
-
-    def render(self, mode='human'):
+    def render(self, mode: str = 'human'):
         return self.env.render(mode=mode)
 
     def close(self):
         return self.env.close()
+
+    @property
+    def unwrapped(self):
+        return self.env.unwrapped

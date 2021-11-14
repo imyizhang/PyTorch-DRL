@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from .ref_trajectory import *
-from .crn import make
-from .crn import ContinuousTimeCRN
+from .env import Env
 from .wrapper import Wrapper
+from .crn import make
+from .ref_trajectory import *
 
-__all__ = ('make', 'ContinuousTimeCRN', 'Wrapper')
+__all__ = ('Env', 'Wrapper', 'make')
