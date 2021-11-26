@@ -28,8 +28,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.8',
     ],
     license='MIT',
-    python_requires='>=3.8',
     install_requires=[
-        'torch>=1.8.1'
+        'torch'
     ],
 )
