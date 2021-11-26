@@ -7,7 +7,6 @@ import numpy as np
 
 from .env import Env
 
-
 class Wrapper(Env):
 
     def __init__(self, env: Env):
