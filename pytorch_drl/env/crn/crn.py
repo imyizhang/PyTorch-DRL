@@ -107,10 +107,13 @@ class ContinuousTimeCRN(Env):
         a = np.array([1.0, action])
         return A_c @ y + B_c @ a
 
-    def step(self, action: int):
+    def step(self, action):
         if self.state is None:
             raise RuntimeError
-        action = (action + 1) / self.action_dim  # float
+        if self.discrete:
+            action = (action + 1) / self.action_dim  # float
+        else:
+            action = action[0]  # float
         # simulation sampling rate
         delta = 0.1
         sol = solve_ivp(
@@ -134,22 +137,32 @@ class ContinuousTimeCRN(Env):
     def compute_reward(self, achieved_goal, desired_goal):
         return (1. - abs(desired_goal - achieved_goal) / desired_goal)
 
-    def render(self, mode: str = 'human') -> None:
-        if self.state is None:
+    def render(
+        self,
+        mode: str = 'human',
+        trajectory: typing.Optional[typing.List] = None,
+        actions_taken: typing.Optional[typing.List] = None,
+        steps_done: typing.Optional[int] = None
+    ) -> None:
+        if (self.state is None) and (not trajectory):
             raise RuntimeError
+        # for replaying
+        _trajectory = self._trajectory if trajectory is None else trajectory
+        _actions_taken = self._actions_taken if actions_taken is None else actions_taken
+        _steps_done = self._steps_done if steps_done is None else steps_done
         # simulation sampling rate
         delta = 0.1
         # reference trajectory and tolerance margin
-        t = np.arange(0, self._T_s * self._steps_done + delta, delta)
+        t = np.arange(0, self._T_s * _steps_done + delta, delta)
         ref_trajectory, tolerance_margin = self.ref_trajectory(t)
         # sfGFP
-        T = np.arange(0, self._T_s * self._steps_done + self._T_s, self._T_s)
-        R, P, G = np.stack(self._trajectory, axis=1)
+        T = np.arange(0, self._T_s * _steps_done + self._T_s, self._T_s)
+        R, P, G = np.stack(_trajectory, axis=1)
         # intensity
         t_u = np.concatenate([
-           np.arange(self._T_s * i, self._T_s * (i + 1) + 1) for i in range(self._steps_done)
+           np.arange(self._T_s * i, self._T_s * (i + 1) + 1) for i in range(_steps_done)
         ])
-        u = np.array(self._actions_taken).repeat(self._T_s + 1) * 100
+        u = np.array(_actions_taken).repeat(self._T_s + 1) * 100
         # plot
         fig, axs = plt.subplots(
             nrows=2,
@@ -202,30 +215,6 @@ class ContinuousTimeCRNContinuous(ContinuousTimeCRN):
     def action_sample(self) -> np.ndarray:
         # continuous action space
         return self._rng.uniform(0, 1, (self.action_dim,))
-
-    def step(self, action: np.ndarray):
-        if self.state is None:
-            raise RuntimeError
-        action = action[0]
-        # simulation sampling rate
-        delta = 0.1
-        sol = solve_ivp(
-            self.func,
-            (0, self._T_s + delta),
-            self.state,
-            t_eval=np.arange(0, self._T_s + delta, delta),
-            args=(action,),
-        )
-        state = sol.y[:, -1]
-        self._trajectory.append(state)
-        self._actions_taken.append(action)
-        self._steps_done += 1
-        observation = state[2]
-        reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
-        reward = self.compute_reward(observation, reference)
-        done = False
-        info = {}
-        return state, reward, done, info
 
 
 class DiscreteTimeCRN(ContinuousTimeCRN):

@@ -79,3 +79,4 @@ class DQNAgent(BaseAgent):
         for param in self.actor.parameters():
             param.grad.data.clamp_(-1, 1)
         self.actor_optim.step()
+        return loss

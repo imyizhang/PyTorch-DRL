@@ -2,5 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from .buffer import ReplayBuffer
+from .logging import EpisodeLogger
 
-__all__ = ('ReplayBuffer')
+__all__ = ('ReplayBuffer', 'EpisodeLogger')

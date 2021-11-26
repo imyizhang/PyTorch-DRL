@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from .base_agent import BaseAgent
-from .model_free import DQNAgent
+from .DQN import DQNAgent
+from .DDPG import DDPGAgent
+from .PPO import PPOAgent
 
-__all__ = ('BaseAgent', 'DQNAgent')
+__all__ = ('BaseAgent', 'DQNAgent', 'DDPGAgent', 'PPOAgent')

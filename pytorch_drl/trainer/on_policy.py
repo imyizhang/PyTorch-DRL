@@ -7,7 +7,7 @@ from .base_trainer import BaseTrainer
 from pytorch_drl.utils import EpisodeLogger
 
 
-class OffPolicyTrainer(BaseTrainer):
+class OnPolicyTrainer(BaseTrainer):
 
     def __init__(
         self,

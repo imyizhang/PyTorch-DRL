@@ -26,15 +26,15 @@ def parse_args():
 def main(args):
     # env
     env = drl.env.GymEnv(
-        args.device,
-        args.env
+        args.env,
+        args.device
     )
     # net
-    actor = drl.net.QNetActor(
+    actor = drl.net.discrete.QNetActor(
         env.state_dim,
         env.action_dim
     )
-    critic = drl.net.QNetCritic(
+    critic = drl.net.discrete.QNetCritic(
         env.state_dim,
         env.action_dim
     )
@@ -45,7 +45,11 @@ def main(args):
         critic,
     )
     # trainer
-    trainer = drl.trainer.OffPolicyTrainer(env, agent)
+    trainer = drl.trainer.OffPolicyTrainer(
+        env,
+        agent,
+        num_episodes=10
+    )
     # run
     return trainer()
 

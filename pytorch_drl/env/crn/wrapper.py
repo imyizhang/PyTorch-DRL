@@ -22,8 +22,8 @@ class Wrapper(Env):
     def step(self, action: typing.Union[int, np.ndarray]):
         return self.env.step(action)
 
-    def render(self, mode: str = 'human'):
-        return self.env.render(mode=mode)
+    def render(self, mode: str = 'human', **kwargs):
+        return self.env.render(mode=mode, **kwargs)
 
     def close(self):
         return self.env.close()

@@ -15,7 +15,6 @@ class BaseTrainer(abc.ABC):
         self.env = env
         self.agent = agent
         self.num_episodes = num_episodes
-        self.episode_duration = []
 
     def __call__(self):
         raise NotImplementedError
