@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import typing
-
 import numpy as np
-
 from .env import Env
 
 class Wrapper(Env):
