@@ -3,6 +3,7 @@
 
 import abc
 import typing
+
 import numpy as np
 
 class RefTrajectory(abc.ABC):
