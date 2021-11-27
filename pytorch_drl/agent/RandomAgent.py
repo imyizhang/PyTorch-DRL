@@ -9,7 +9,7 @@ import torch
 from .base_agent import BaseAgent
 
 
-class DQNAgent(BaseAgent):
+class RandomAgent(BaseAgent):
 
     def __init__(
         self,
