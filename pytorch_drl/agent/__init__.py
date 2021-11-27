@@ -6,4 +6,4 @@ from .DQN import DQNAgent
 from .DDPG import DDPGAgent
 from .PPO import PPOAgent
 
-__all__ = ('BaseAgent', 'DQNAgent', 'DDPGAgent', 'PPOAgent')
+__all__ = ('BaseAgent', 'DQNAgent', 'DDPGAgent', 'PPOAgent', 'RandomAgent', 'ProportionalIntegralController')
