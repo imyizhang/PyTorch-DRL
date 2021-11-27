@@ -11,19 +11,21 @@ class RandomAgent(BaseAgent):
 
     def __init__(
         self,
-        exploration_rate=0.9,
+        device,
     ):
-        self.exploration_rate = exploration_rate
+        super().__init__(
+            device,
+            actor,
+            critic,
+            discount_factor,
+            buffer_capacity,
+            batch_size,
+            sync_step,
+        )
         self.curr_step = 0
 
     def act(self, state):
-        # explore
-        if random.random() < self.exploration_rate:
-            action = self.actor.configure_sampler().to(self.device)
-        # exploit
-        else:
-            with torch.no_grad():
-                action = self.actor(state).max(dim=1, keepdim=True).indices
+        action = self.actor.configure_sampler().to(self.device)
         # increment step
         self.curr_step += 1
         return action
