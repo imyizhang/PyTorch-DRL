@@ -15,12 +15,6 @@ class RandomAgent(BaseAgent):
     ):
         super().__init__(
             device,
-            actor,
-            critic,
-            discount_factor,
-            buffer_capacity,
-            batch_size,
-            sync_step,
         )
         self.curr_step = 0
 
