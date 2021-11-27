@@ -135,7 +135,8 @@ class ContinuousTimeCRN(Env):
         return state, reward, done, info
 
     def compute_reward(self, achieved_goal, desired_goal):
-        # We should really add some flexibility here - either absolute distance, or 1 in target region and 0 outside, or inverse of distance in target region and 0 outside
+        # We neeed to add flexibility here - either absolute distance, negative exponential of the absolute distance
+        # min(inverse of distance, inverse of a defined threshold, or 1 in target region and 0 outside
         return (1. - abs(desired_goal - achieved_goal) / desired_goal)
 
     def render(
