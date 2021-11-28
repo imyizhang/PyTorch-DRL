@@ -230,132 +230,132 @@ class ContinuousTimeCRNContinuous(ContinuousTimeCRN):
         return self._rng.uniform(0, 1, (self.action_dim,))
 
 
-class DiscreteTimeCRN(ContinuousTimeCRN):
-    """
-    s' = A @ s + B @ a
-    """
+# class DiscreteTimeCRN(ContinuousTimeCRN):
+#     """
+#    s' = A @ s + B @ a
+#    """
+#
+#    def __init__(
+#        self,
+#        ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
+#        sampling_rate: float = 10,
+#    ) -> None:
+#        super().__init__(ref_trajectory, sampling_rate)
 
-    def __init__(
-        self,
-        ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
-        sampling_rate: float = 10,
-    ) -> None:
-        super().__init__(ref_trajectory, sampling_rate)
 
-
-class MarginalParticleFilter():
-
-    # disturbance
-    d = 0.0
-    # parameters
-    theta = np.array([d_r, d_p, k_m, b_r, d])
-    # sample parameter particles
-    sigma_theta = 1e-3 * np.array([1.0155, 0.0509, 0.0150, 1.0347, 0.1000])
-    # perturb parameter particles
-    sigma_p = 1e-3 * np.array([0.2539, 0.0127, 0.0037, 0.2587, 0.0250])
-    # perturb state particles
-    sigma_s = np.array([0.0100, 0.0100, 0.0100])
-    # compute particle weights
-    sigma_meas = 0.0025
-
-    def __init__(
-        self,
-        rng: np.random.Generator,
-        P: int = 5,
-        sampling_rate: float = 10,
-    ) -> None:
-        self.rng = rng
-        self.P = P
-        self._T_s = sampling_rate
-        # initialize
-        self.param_p = None
-        self.state_p = None
-        self._setup_particles()
-        self.curr_step = 0
-
-    @property
-    def meas_p(self) -> np.ndarray:
-        if self.state_p is None:
-            return None
-        # C particles shape (P, 1, 3)
-        C_p = C.reshape(1, 1, -1).repeat(self.P, axis=0)
-        # y_n = C x_n
-        return C_p @ self.state_p
-
-    def __call__(self, action: float, meas: float):
-        self._propagate_state_p(action)
-        self._resample_particles(meas)
-        self._perturb_param_p()
-        self.curr_step += 1
-        return self.param_p, self.state_p
-
-    def _setup_particles(self) -> None:
-        # parameter particles shape (P, 5, 1)
-        self.param_p = self.theta.reshape(1, -1, 1).repeat(self.P, axis=0)
-        self.param_p += self._wn(self.sigma_theta)
-        # state particles shape (P, 3, 1)
-        self.state_p = np.ones((self.P, 3, 1))
-
-    def _propagate_state_p(self, action: float) -> None:
-        A_p = []
-        B_p = []
-        action_p = []
-        for _theta in self.param_p:
-            _A, _B = self._A_B(_theta, self._T_s)  # global T_s
-            A_p.append(_A)
-            B_p.append(_B)
-            action_p.append(self._a(_theta, action))
-        # A particles shape (P, 3, 3)
-        A_p = np.stack(A_p, axis=0)
-        # B particles shape (P, 3, 2)
-        B_p = np.stack(B_p, axis=0)
-        # action particles shape (P, 2, 1)
-        action_p = np.stack(action_p, axis=0)
-        # x_n+1 = A(theta_n) x_n + B(theta_n) a(u_n-1, theta_n) + w_n+1
-        self.state_p = A_p @ self.state_p + B_p @ action_p
-        self.state_p += self._wn(self.sigma_s)
-
-    def _resample_particles(self, meas: float) -> None:
-        # particle weights shape (P, 1, 1)
-        #w_p = np.exp(- (self.meas_p - meas) ** 2 / (2 * self.sigma_meas ** 2))
-        w_p = - np.log(np.sqrt(2 * np.pi) * self.sigma_meas) - (self.meas_p - meas) ** 2 / (2 * self.sigma_meas ** 2)
-        # normalize particle weights
-        W_p = w_p / w_p.sum()
-        # resample parameter particles
-        self.param_p *= W_p
-        # resample state particles
-        self.state_p *= W_p
-
-    def _perturb_param_p(self) -> None:
-        # theta_n+1 = theta_n + v_n+1
-        self.param_p += self._wn(self.sigma_p)
-
-    def _wn(self, sigma: np.ndarray) -> np.ndarray:
-        mu = np.zeros(sigma.shape)
-        cov = np.diag(sigma)
-        return self.rng.multivariate_normal(mu, cov, self.P).reshape(self.P, -1, 1)
-
-    @staticmethod
-    def _A_B(
-        _theta: np.ndarray,
-        _T_s: float,
-    ) -> typing.Tuple[np.ndarray, np.ndarray]:
-        _d_r, _d_p, _k_m, _b_r, _d = _theta.reshape(-1)
-        _A_c = np.array([[-_d_r, 0.0, 0.0],
-                         [_d_p + _k_m, -_d_p - _k_m, 0.0],
-                         [0.0, _d_p, -_d_p]])
-        _B_c = np.array([[_d_r, _b_r],
-                         [0.0, 0.0],
-                         [0.0, 0.0]])
-        _A = np.exp(_A_c * _T_s)
-        _B = np.linalg.inv(_A_c) @ (_A - np.eye(_A.shape[0])) @ _B_c
-        return _A, _B
-
-    @staticmethod
-    def _a(
-        _theta: np.ndarray,
-        action: float,
-    ) -> np.ndarray:
-        _d_r, _d_p, _k_m, _b_r, _d = _theta.reshape(-1)
-        return np.array([[1.0],
-                         [action + _d]])
+# class MarginalParticleFilter():
+#
+#    # disturbance
+#    d = 0.0
+#    # parameters
+#    theta = np.array([d_r, d_p, k_m, b_r, d])
+#    # sample parameter particles
+#    sigma_theta = 1e-3 * np.array([1.0155, 0.0509, 0.0150, 1.0347, 0.1000])
+#    # perturb parameter particles
+#    sigma_p = 1e-3 * np.array([0.2539, 0.0127, 0.0037, 0.2587, 0.0250])
+#    # perturb state particles
+#    sigma_s = np.array([0.0100, 0.0100, 0.0100])
+#    # compute particle weights
+#    sigma_meas = 0.0025
+#
+#    def __init__(
+#        self,
+#        rng: np.random.Generator,
+#        P: int = 5,
+#        sampling_rate: float = 10,
+#    ) -> None:
+#        self.rng = rng
+#        self.P = P
+#        self._T_s = sampling_rate
+#        # initialize
+#        self.param_p = None
+#        self.state_p = None
+#        self._setup_particles()
+#        self.curr_step = 0
+#
+#    @property
+#    def meas_p(self) -> np.ndarray:
+#        if self.state_p is None:
+#            return None
+#        # C particles shape (P, 1, 3)
+#        C_p = C.reshape(1, 1, -1).repeat(self.P, axis=0)
+#        # y_n = C x_n
+#        return C_p @ self.state_p
+#
+#    def __call__(self, action: float, meas: float):
+#        self._propagate_state_p(action)
+#        self._resample_particles(meas)
+#        self._perturb_param_p()
+#        self.curr_step += 1
+#        return self.param_p, self.state_p
+#
+#    def _setup_particles(self) -> None:
+#        # parameter particles shape (P, 5, 1)
+#        self.param_p = self.theta.reshape(1, -1, 1).repeat(self.P, axis=0)
+#        self.param_p += self._wn(self.sigma_theta)
+#        # state particles shape (P, 3, 1)
+#        self.state_p = np.ones((self.P, 3, 1))
+#
+#    def _propagate_state_p(self, action: float) -> None:
+#        A_p = []
+#        B_p = []
+#        action_p = []
+#        for _theta in self.param_p:
+#            _A, _B = self._A_B(_theta, self._T_s)  # global T_s
+#            A_p.append(_A)
+#            B_p.append(_B)
+#            action_p.append(self._a(_theta, action))
+#        # A particles shape (P, 3, 3)
+#        A_p = np.stack(A_p, axis=0)
+#        # B particles shape (P, 3, 2)
+#        B_p = np.stack(B_p, axis=0)
+#        # action particles shape (P, 2, 1)
+#        action_p = np.stack(action_p, axis=0)
+#        # x_n+1 = A(theta_n) x_n + B(theta_n) a(u_n-1, theta_n) + w_n+1
+#        self.state_p = A_p @ self.state_p + B_p @ action_p
+#        self.state_p += self._wn(self.sigma_s)
+#
+#    def _resample_particles(self, meas: float) -> None:
+#        # particle weights shape (P, 1, 1)
+#        #w_p = np.exp(- (self.meas_p - meas) ** 2 / (2 * self.sigma_meas ** 2))
+#        w_p = - np.log(np.sqrt(2 * np.pi) * self.sigma_meas) - (self.meas_p - meas) ** 2 / (2 * self.sigma_meas ** 2)
+#        # normalize particle weights
+#        W_p = w_p / w_p.sum()
+#        # resample parameter particles
+#        self.param_p *= W_p
+#        # resample state particles
+#        self.state_p *= W_p
+#
+#    def _perturb_param_p(self) -> None:
+#         # theta_n+1 = theta_n + v_n+1
+#         self.param_p += self._wn(self.sigma_p)
+# 
+#    def _wn(self, sigma: np.ndarray) -> np.ndarray:
+#        mu = np.zeros(sigma.shape)
+#        cov = np.diag(sigma)
+#        return self.rng.multivariate_normal(mu, cov, self.P).reshape(self.P, -1, 1)
+#
+#    @staticmethod
+#    def _A_B(
+#        _theta: np.ndarray,
+#        _T_s: float,
+#    ) -> typing.Tuple[np.ndarray, np.ndarray]:
+#        _d_r, _d_p, _k_m, _b_r, _d = _theta.reshape(-1)
+#        _A_c = np.array([[-_d_r, 0.0, 0.0],
+#                         [_d_p + _k_m, -_d_p - _k_m, 0.0],
+#                         [0.0, _d_p, -_d_p]])
+#        _B_c = np.array([[_d_r, _b_r],
+#                         [0.0, 0.0],
+#                         [0.0, 0.0]])
+#        _A = np.exp(_A_c * _T_s)
+#        _B = np.linalg.inv(_A_c) @ (_A - np.eye(_A.shape[0])) @ _B_c
+#        return _A, _B
+#
+#    @staticmethod
+#    def _a(
+#        _theta: np.ndarray,
+#        action: float,
+#    ) -> np.ndarray:
+#        _d_r, _d_p, _k_m, _b_r, _d = _theta.reshape(-1)
+#        return np.array([[1.0],
+#                         [action + _d]])
