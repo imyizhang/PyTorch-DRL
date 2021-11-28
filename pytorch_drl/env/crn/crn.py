@@ -136,8 +136,8 @@ class ContinuousTimeCRN(Env):
 
     def compute_reward(self, achieved_goal, desired_goal, mode: str):
         abs_dist = abs(desired_goal - achieved_goal)
-        tolerance = 0.05
-        perfection = 0.001
+        tolerance = 0.05 ## To be inherited from RefTrajectory
+        perfection = tolerance * 0.01
         if mode == 'nega_abs':
             return (- abs_dist)
         elif mode == 'inverse_abs':
