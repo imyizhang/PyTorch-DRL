@@ -141,7 +141,7 @@ class ContinuousTimeCRN(Env):
         tolerance = 0.05
         if mode == 'nega_abs':
             return (- abs_dist)
-        elif mode == 'nega_abs':
+        elif mode == 'nega_logabs':
             return (-np.log(abs_dist))
         elif mode == 'percentage':
             return (1. - abs_dist / desired_goal)
