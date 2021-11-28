@@ -238,10 +238,24 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeCRN):
     def action_sample(self) -> np.ndarray:
         # continuous action space
         return self._rng.uniform(0, 1, (self.action_dim,))
+    
+class StochasticContinuousTimeCRN(ContinuousTimeCRN):
+    """
+    S(t) = S(0) + Y1 + Y2 + Y3
+    """
 
+    def __init__(
+        self,
+        ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
+        sampling_rate: float = 10,
+    ) -> None:
+        super().__init__(ref_trajectory, sampling_rate)  
+        
+  ## Quentin to adapt SSA / modified Next Reaction Method from ref code
+    
 
 # class DiscreteTimeCRN(ContinuousTimeCRN):
-#     """
+#    """
 #    s' = A @ s + B @ a
 #    """
 #
