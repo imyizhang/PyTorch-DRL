@@ -49,8 +49,8 @@ class OffPolicyTrainer(BaseTrainer):
                 state = next_state
                 # check if end
                 rewards.append(reward)
-                if done or sum(rewards[-10:]) / len(rewards[-10:]) > 0.9:
-                    break
+                #if done or sum(rewards[-10:]) / len(rewards[-10:]) > 0.9:
+                #    break
             # logging
             self.logger.episode()
             if episode % self.agent.sync_step == 0:
