@@ -16,7 +16,7 @@ def make(cls: str, **kwargs):
     if cls == 'CRN':
         return ContinuousTimeCRN(**kwargs)
     elif cls == 'CRNContinuous':
-        return ContinuousTimeCRNContinuous(**kwargs)
+        return ContinuousTimeContinuousActionCRN(**kwargs)
     else:
         raise RuntimeError
 
@@ -214,7 +214,7 @@ class ContinuousTimeCRN(Env):
         self._steps_done = 0
 
 
-class ContinuousTimeCRNContinuous(ContinuousTimeCRN):
+class ContinuousTimeContinuousActionCRN(ContinuousTimeCRN):
     """
     s' = A @ s + B @ a
     """
