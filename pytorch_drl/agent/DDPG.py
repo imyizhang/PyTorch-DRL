@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import copy
 import random
 import math
 
@@ -33,6 +34,8 @@ class DDPGAgent(BaseAgent):
             batch_size,
             sync_step,
         )
+        self.actor_target = copy.deepcopy(self.actor)
+        self.critic_target = copy.deepcopy(self.critic)
         self.exploration_rate = exploration_rate
         self.exploration_rate_min = exploration_rate_min
         self.exploration_rate_decay = exploration_rate_decay
@@ -64,19 +67,14 @@ class DDPGAgent(BaseAgent):
 
     def learn(self):
         state, action, reward, done, next_state = self.recall()
-        # Q size -> (batch, 1)
-        # compute Q(s, a)
-        Q = self.actor(state).gather(dim=1, index=action)
-        # compute V(s') := max_{a'} Q(s', a')
+        Q = self.critic(state, action)
         with torch.no_grad():
-            V = self.critic(next_state).max(dim=1, keepdim=True).values
-        # compute expected Q(s, a) := r(s, a) + gamma * V(s')
-        Q_expected = reward + self.gamma * V
-        # optimize the actor
-        self.actor_optim.zero_grad()
-        loss = self.actor_criterion(Q, Q_expected)
+            next_Q = self.critic_target(next_state, self.actor_target(next_state))
+        Q_expected = reward + mask * next_Q
+        self.critic_optim.zero_grad()
+        loss = self.critic_criterion(Q, Q_expected)
         loss.backward()
-        for param in self.actor.parameters():
-            param.grad.data.clamp_(-1, 1)
-        self.actor_optim.step()
+        self.critic_optim.step()
+        for param_target, param in zip(self.critic_target.parameters(), self.critic.parameters()):
+            param_target.data.copy_(param_target.data * tau + tar.data * (1.0 - tau))
         return loss

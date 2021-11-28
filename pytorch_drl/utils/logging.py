@@ -65,6 +65,6 @@ class EpisodeLogger:
         self.episode_trajectory.append(self._trajectory)
         self.episode_actions.append(self._actions_taken)
         self.episode_duration.append(self._steps_done)
-        self.episode_reward.append(self._reward_aggregator / self._steps_done)
+        self.episode_reward.append(self._reward_aggregator)
         self.episode_loss.append(self._loss_aggregator / self._steps_done)
         self._init()

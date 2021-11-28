@@ -107,7 +107,7 @@ class ContinuousTimeCRN(Env):
         a = np.array([1.0, action])
         return A_c @ y + B_c @ a
 
-    def step(self, action):
+    def step(self, action, mode: str):
         if self.state is None:
             raise RuntimeError
         if self.discrete:
@@ -129,15 +129,26 @@ class ContinuousTimeCRN(Env):
         self._steps_done += 1
         observation = state[2]
         reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
-        reward = self.compute_reward(observation, reference)
+        reward = self.compute_reward(observation, reference, mode)
         done = False
         info = {}
         return state, reward, done, info
 
-    def compute_reward(self, achieved_goal, desired_goal):
+    def compute_reward(self, achieved_goal, desired_goal, mode: str):
         # We neeed to add flexibility here - either absolute distance, negative exponential of the absolute distance
         # min(inverse of distance, inverse of a defined threshold, or 1 in target region and 0 outside
-        return (1. - abs(desired_goal - achieved_goal) / desired_goal)
+        abs_dist = abs(desired_goal - achieved_goal)
+        tolerance = 0.05
+        if mode == 'nega_abs':
+            return (- abs_dist)
+        elif mode == 'nega_abs':
+            return (-np.log(abs_dist))
+        elif mode == 'percentage':
+            return (1. - abs_dist / desired_goal)
+        elif mode == 'tolerance':
+            return 1 if (abs_dist / desired_goal < tolerance) else 0
+        else:
+            raise RuntimeError
 
     def render(
         self,

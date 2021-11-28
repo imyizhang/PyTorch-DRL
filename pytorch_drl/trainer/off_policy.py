@@ -14,11 +14,13 @@ class OffPolicyTrainer(BaseTrainer):
         env,
         agent,
         num_episodes=10,
+        num_timesteps=None,
     ):
         super().__init__(
             env,
             agent,
             num_episodes,
+            num_timesteps
         )
         self.logger = EpisodeLogger()
 
@@ -30,7 +32,8 @@ class OffPolicyTrainer(BaseTrainer):
             state = self.env.reset()
             self.logger.reset(state)
             rewards = []
-            for step in itertools.count():
+            timesteps = itertools.count() if self.num_timesteps is None else range(self.num_timesteps)
+            for step in timesteps:
                 # select an action
                 action = self.agent.act(state)
                 # perform the action and observe new state

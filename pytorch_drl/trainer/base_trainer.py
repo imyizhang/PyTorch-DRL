@@ -11,10 +11,12 @@ class BaseTrainer(abc.ABC):
         env,
         agent,
         num_episodes,
+        num_timesteps,
     ):
         self.env = env
         self.agent = agent
         self.num_episodes = num_episodes
+        self.num_timesteps = num_timesteps
 
     def __call__(self):
         raise NotImplementedError
