@@ -146,7 +146,7 @@ class ContinuousTimeCRN(Env):
         elif mode == 'percentage':
             return (1. - abs_dist / desired_goal)
         elif mode == 'tolerance':
-            return 1 if (abs_dist / desired_goal < tolerance) else 0
+            return 1 if (abs_dist / desired_goal < 2 * tolerance) else 0
         else:
             raise RuntimeError
 
