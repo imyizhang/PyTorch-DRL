@@ -162,6 +162,7 @@ class ContinuousTimeCRN(Env):
         # for replaying
         _trajectory = self._trajectory if trajectory is None else trajectory
         _actions_taken = self._actions_taken if actions_taken is None else actions_taken
+        ## Add line here to retrieve stagewise reward
         _steps_done = self._steps_done if steps_done is None else steps_done
         # simulation sampling rate
         delta = 0.1
@@ -179,7 +180,7 @@ class ContinuousTimeCRN(Env):
         # plot
         fig, axs = plt.subplots(
             nrows=2,
-            ncols=1,
+            ncols=1, ## Change this to 2, to have the evolution of the stepwise reward on the side
             sharex=True,
             gridspec_kw={'height_ratios': [2, 1]}
         )
@@ -196,6 +197,7 @@ class ContinuousTimeCRN(Env):
         axs[1].plot(t_u, u)
         axs[1].set_xlabel('Time (min)')
         axs[1].set_ylabel('intensity (%)')
+        ## Add an axis to show evolution of stepwise reward in 2nd column
         plt.show()
 
     def close(self) -> None:
