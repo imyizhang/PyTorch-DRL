@@ -43,7 +43,7 @@ C = np.array([[0.0, 0.0, 1.0]])
 # refer to https://static-content.springer.com/esm/art%3A10.1038%2Fncomms12546/MediaObjects/41467_2016_BFncomms12546_MOESM1324_ESM.pdf
 # equivalent discrete-time fold-change model:
 #     s' = A @ s + B @ a
-T_s = 10  # sampling rate
+T_s = 10  # experimental sampling rate
 
 A = np.exp(A_c * T_s)
 
@@ -114,7 +114,7 @@ class ContinuousTimeCRN(Env):
             action = (action + 1) / self.action_dim  # float
         else:
             action = action[0]  # float
-        # simulation sampling rate
+        # environment dynamics simulation sampling rate
         delta = 0.1
         sol = solve_ivp(
             self.func,
