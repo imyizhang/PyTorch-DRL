@@ -197,9 +197,9 @@ class ContinuousTimeCRN(Env):
         if mode == 'human':
             axs[0].plot(T, G, 'o-', label='G')
         else:
-            axs[0].plot(T, R, 'o-', label='R')
-            axs[0].plot(T, P, 'o-', label='P')
-            axs[0].plot(T, G, 'o-', label='G')
+            axs[0].plot(T, R, 'o-', label='R', color='r')
+            axs[0].plot(T, P, 'o-', label='P', color='b)
+            axs[0].plot(T, G, 'o-', label='G', color='g')
         axs[0].set_ylabel('sfGFP (1/min)')
         axs[0].legend()
         axs[1].plot(t_u, u)
