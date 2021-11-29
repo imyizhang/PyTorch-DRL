@@ -195,7 +195,7 @@ class ContinuousTimeCRN(Env):
         axs[0].plot(t, ref_trajectory, '--', color='grey')
         axs[0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
         if mode == 'human':
-            axs[0].plot(T, G, 'o-', label='G')
+            axs[0].plot(T, G, 'o-', label='G', color='g')
         else:
             axs[0].plot(T, R, 'o-', label='R', color='r')
             axs[0].plot(T, P, 'o-', label='P', color='b)
