@@ -200,7 +200,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
             axs[0].plot(T, G, 'o-', label='G', color='g')
         else:
             axs[0].plot(T, R, 'o-', label='R', color='r')
-            axs[0].plot(T, P, 'o-', label='P', color='b)
+            axs[0].plot(T, P, 'o-', label='P', color='b')
             axs[0].plot(T, G, 'o-', label='G', color='g')
         axs[0].set_ylabel('sfGFP (1/min)')
         axs[0].legend()
