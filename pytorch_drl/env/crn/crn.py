@@ -70,6 +70,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # initialize
         self._trajectory = []
         self._actions_taken = []
+        self._rewards = []
         self._steps_done = 0
 
     @property
@@ -99,6 +100,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
     def reset(self) -> np.ndarray:
         self._trajectory = []
         self._actions_taken = []
+        self._rewards = []
         self._steps_done = 0
         state = np.ones((self.state_dim,))
         self._trajectory.append(state)
@@ -133,6 +135,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         observation = state[2]
         reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
         reward = self.compute_reward(observation, reference, mode)
+        self._rewards.append(reward)
         done = False
         info = {}
         return state, reward, done, info
@@ -174,6 +177,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         _trajectory = self._trajectory if trajectory is None else trajectory
         _actions_taken = self._actions_taken if actions_taken is None else actions_taken
         ## Add line here to retrieve stagewise reward
+        _rewads = self._rewards
         _steps_done = self._steps_done if steps_done is None else steps_done
         # simulation sampling rate
         delta = 0.1
@@ -190,7 +194,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         u = np.array(_actions_taken).repeat(self._T_s + 1) * 100
         # plot
         fig, axs = plt.subplots(
-            nrows=2,
+            nrows=3,
             ncols=1, ## Change this to 2, to have the evolution of the stepwise reward on the side
             sharex=True,
             gridspec_kw={'height_ratios': [2, 1]}
@@ -209,11 +213,14 @@ class ContinuousTimeDiscreteActionCRN(Env):
         axs[1].set_xlabel('Time (min)')
         axs[1].set_ylabel('intensity (%)')
         ## Add an axis to show evolution of stepwise reward in 2nd column
+        axs[2].plot(_rewads)
+        axs[2].set_ylabel('rewads')
         plt.show()
 
     def close(self) -> None:
         self._trajectory = []
         self._actions_taken = []
+        self._rewards = []
         self._steps_done = 0
 
 
