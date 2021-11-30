@@ -341,7 +341,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
             self._trajectory.append(state)
             self._actions_taken.append(action)
             self._steps_done += 1
-            observation = state[2]
+            observation = state[3] # gene copy number added here vs. deterministic case
             reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
             reward = self.compute_reward(observation, reference, mode)
             done = False
