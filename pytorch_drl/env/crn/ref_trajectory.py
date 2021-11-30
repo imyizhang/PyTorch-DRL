@@ -10,7 +10,7 @@ class RefTrajectory(abc.ABC):
 
     def __init__(
         self,
-        scale: float = 1.5,
+        scale: float = 1.5, # this could become a parameter
         tolerance: float = 0.05,
     ) -> None:
         self.scale = scale
@@ -41,7 +41,7 @@ class ConstantRefTrajectory(RefTrajectory):
 
     def __init__(
         self,
-        scale: float = 1.5,
+        scale: float = 1.5, # this could become a parameter
         tolerance: float = 0.05,
     ) -> None:
         super().__init__(scale, tolerance)
@@ -56,11 +56,11 @@ class SineRefTrajectory(RefTrajectory):
 
     def __init__(
         self,
-        scale: float = 1.5,
+        scale: float = 1.5, # this could become a parameter
         tolerance: float = 0.05,
-        period: float = 200,
-        amplitude: float = 0.1,
-        phase: float = 0.0,
+        period: float = 200, # this could become a parameter
+        amplitude: float = 0.1, # this could become a parameter
+        phase: float = 0.0, # this could become a parameter
     ) -> None:
         super().__init__(scale, tolerance)
         self.period = period
