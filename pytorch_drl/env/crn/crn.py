@@ -27,7 +27,7 @@ def make(cls: str, **kwargs):
 # continuous-time fold-change model:
 #     ds / dt = A_c @ s + B_c @ a
 # with nominal parameters from a maximum-likelihood fit
-d_r = 0.0956
+d_r = 0.0956 ## these 4 model parameters may be entered as parameters
 d_p = 0.0214
 k_m = 0.0116
 b_r = 0.0965
@@ -45,7 +45,7 @@ C = np.array([[0.0, 0.0, 1.0]])
 # refer to https://static-content.springer.com/esm/art%3A10.1038%2Fncomms12546/MediaObjects/41467_2016_BFncomms12546_MOESM1324_ESM.pdf
 # equivalent discrete-time fold-change model:
 #     s' = A @ s + B @ a
-T_s = 10  # experimental observation sampling rate
+T_s = 10  # experimental observation sampling rate ## this may be entered as parameters
 
 A = np.exp(A_c * T_s)
 
@@ -118,7 +118,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
             action = (action + 1) / self.action_dim  # float
         else:
             action = action[0]  # float
-        action = np.clip(action + self._rng.normal(0, 1e-3), 0, 1)
+        action = np.clip(action + self._rng.normal(0, 1e-3), 0, 1) # the exploration rate may be entered as parameters
         # environment dynamics simulation sampling rate
         delta = 0.1
         sol = solve_ivp(
