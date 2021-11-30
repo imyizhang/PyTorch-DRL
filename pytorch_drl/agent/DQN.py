@@ -48,10 +48,6 @@ class DQNAgent(BaseAgent):
         else:
             with torch.no_grad():
                 action = self.actor(state).max(dim=1, keepdim=True).indices
-                # add white noise scaled by exploration_noise
-                #noise = torch.randn_like(action, dtype=action.dtype, device=action.device) * self.exploration_noise
-                noise = torch.normal(torch.tensor([[0.0]]), torch.tensor([[1.0]])).to(self.device) * self.exploration_noise
-                action = (action + noise).clamp(0, 1)
         # increment step
         self.curr_step += 1
         # decrease exploration rate

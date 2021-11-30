@@ -114,6 +114,9 @@ class ContinuousTimeDiscreteActionCRN(Env):
             raise RuntimeError
         if self.discrete:
             action = (action + 1) / self.action_dim  # float
+            # add white noise scaled by exploration_noise
+            noise = self._rng.normal(0.0, 1e-3)
+            action = np.clip(action + noise, 0.0, 1.0)
         else:
             action = action[0]  # float
         # environment dynamics simulation sampling rate
