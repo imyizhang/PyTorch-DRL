@@ -197,7 +197,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
             nrows=3,
             ncols=1, ## Change this to 2, to have the evolution of the stepwise reward on the side
             sharex=True,
-            gridspec_kw={'height_ratios': [2, 1]}
+            gridspec_kw={'height_ratios': [2, 1, 1]}
         )
         axs[0].plot(t, ref_trajectory, '--', color='grey')
         axs[0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
