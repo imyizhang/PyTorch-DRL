@@ -116,6 +116,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
             action = (action + 1) / self.action_dim  # float
         else:
             action = action[0]  # float
+        action = np.clip(action + self._rng.normal(0, 1e-3), 0, 1)
         # environment dynamics simulation sampling rate
         delta = 0.1
         sol = solve_ivp(
