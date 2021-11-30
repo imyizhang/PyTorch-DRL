@@ -338,7 +338,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
                 r = np.random.rand()
                 Pk[loc] = Pk[loc] + np.log(1/r)
             ####
-            state = sol[:,0:count]
+            state = sol[:,count]
             self._trajectory.append(state)
             self._actions_taken.append(action)
             self._steps_done += 1
