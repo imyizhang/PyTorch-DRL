@@ -253,7 +253,100 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
     ) -> None:
         super().__init__(ref_trajectory, sampling_rate)
 
-  ## Quentin to adapt SSA / modified Next Reaction Method from ref code
+    def step(self, action, mode: str):
+            if self.state is None:
+                raise RuntimeError
+            if self.discrete:
+                action = (action + 1) / self.action_dim  # float
+            else:
+                action = action[0]  # float
+            ####
+            # A maximum number of steps to run before breaking.
+            maxi = T_s*10**5
+
+            # Define all rate parameters in the model.
+            # Each column is a reaction vector: \zeta_k = y_k' - y_k.
+            # Total number of reaction channels in the model.
+            k = np.array([b_r*action, b_p, d_r, d_p, d_p, k_m, k_m])
+            zeta = np.array([[0,  0,  0,  0,  0, 0, 0],
+                    [1,  0, -1,  0,  0,  0, 0],
+                    [0,  1,  0, -1, 0,  -1, +1],
+                    [0,  0,  0,  0,  -1, +1, -1]])
+            R = zeta.shape[1]
+
+            # initialize: x1 free gene, x2 mRNA, x3 immature proteins, x4 mature proteins.
+            # A vector holding the jump times of the trajectory.
+            # A matrix whose columns gives the state of the model at the jump times.
+            # Initialize the state.
+            # a vector holding the intensities of the reaction channels.
+            # vectors for the integrated intensity functions and the next jump times of the unit Poisson processes.
+            # vector holding actual times before next jumps in each reaction channel.
+            initial = np.array([random.randint(1,3), random.randint(1, 20), random.randint(0,10), random.randint(0,10)])
+            T = np.zeros(maxi)
+            sol = np.zeros((zeta.shape[0],maxi))
+            sol[:,0] = initial
+            lamb = np.zeros(R)
+            Tk = np.zeros(R)
+            Pk = np.zeros(R)
+            t = np.zeros(R)
+
+            # uniform random variables in order to find the first jump time of each unit Poisson process.
+            # set first jump time of each unit Poisson process.
+            r = np.random.rand(R)
+            Pk = np.log(1./r)
+
+            for i in range(0, maxi):
+
+                # Set values for the intensity functions.
+                lamb[0] = k[0]*sol[0,i]
+                lamb[1] = k[1]*sol[1,i]
+                lamb[2] = k[2]*sol[1,i]
+                lamb[3] = k[3]*sol[2,i]
+                lamb[4] = k[4]*sol[3,i]
+                lamb[5] = k[5]*sol[2,i]
+                lamb[6] = k[6]*sol[3,i]
+
+                # Find the amount of time required for each reaction channel to fire
+                # (under the assumption no other channel fires first)
+                # Find the index of the where the minimum is achieved.
+                for c in range(0,R):
+                    if lamb[c] != 0:
+                        t[c] = (Pk[c] - Tk[c])/lamb[c]
+                    else:
+                        t[c] = np.inf
+
+                loc = 0
+                for ind in range(1,R):
+                    if t[loc]>t[ind]:
+                        loc = ind
+
+                # If we have reached our end time, break the script.
+                if T[i] + t[loc] > T_s:
+                    count = i
+                    print(T[i] + t[loc])
+                    break
+
+                # update the state of the system, and catalog the jump time.
+                # update the integrated intensity functions.
+                sol[:,i+1] = sol[:,i] + zeta[:,loc]
+                T[i+1] = T[i] + t[loc]
+                for c in range(0,R):
+                    Tk[c] = Tk[c] + lamb[c]*t[loc]
+
+                # find the next jump time of the one unit Poisson process that fired.
+                r = np.random.rand()
+                Pk[loc] = Pk[loc] + np.log(1/r)
+            ####
+            state = sol[:,0:count]
+            self._trajectory.append(state)
+            self._actions_taken.append(action)
+            self._steps_done += 1
+            observation = state[2]
+            reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
+            reward = self.compute_reward(observation, reference, mode)
+            done = False
+            info = {}
+            return state, reward, done, info
 
 
 # class DiscreteTimeCRN(ContinuousTimeDiscreteActionCRN):
