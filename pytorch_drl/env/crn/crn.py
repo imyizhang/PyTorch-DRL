@@ -138,12 +138,12 @@ class ContinuousTimeDiscreteActionCRN(Env):
 
     def compute_reward(self, achieved_goal, desired_goal, mode: str):
         abs_dist = abs(desired_goal - achieved_goal)
-        tolerance = 0.05 ## To be inherited from RefTrajectory
+        tolerance = self.ref_trajectory.tolerance
         perfection = tolerance * 0.01
         if mode == 'nega_abs':
             return (- abs_dist)
         elif mode == 'inverse_abs':
-            if (abs_dist < perfection)
+            if (abs_dist < perfection):
                 return (1/perfection)
             else:
                 return (1/abs_distance)
@@ -240,7 +240,7 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
     def action_sample(self) -> np.ndarray:
         # continuous action space
         return self._rng.uniform(0, 1, (self.action_dim,))
-    
+
 class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN):
     """
     S(t) = S(0) + Y1 + Y2 + Y3
@@ -251,10 +251,10 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
         sampling_rate: float = 10,
     ) -> None:
-        super().__init__(ref_trajectory, sampling_rate)  
-        
+        super().__init__(ref_trajectory, sampling_rate)
+
   ## Quentin to adapt SSA / modified Next Reaction Method from ref code
-    
+
 
 # class DiscreteTimeCRN(ContinuousTimeDiscreteActionCRN):
 #    """
@@ -355,7 +355,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
 #    def _perturb_param_p(self) -> None:
 #         # theta_n+1 = theta_n + v_n+1
 #         self.param_p += self._wn(self.sigma_p)
-# 
+#
 #    def _wn(self, sigma: np.ndarray) -> np.ndarray:
 #        mu = np.zeros(sigma.shape)
 #        cov = np.diag(sigma)
