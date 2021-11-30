@@ -17,6 +17,8 @@ def make(cls: str, **kwargs):
         return ContinuousTimeDiscreteActionCRN(**kwargs)
     elif cls == 'CRNContinuous':
         return ContinuousTimeContinuousActionCRN(**kwargs)
+    elif cls == 'StochasticCRN':
+        return StochasticContinuousTimeDiscreteActionCRN(**kwargs)
     else:
         raise RuntimeError
 
@@ -239,7 +241,7 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
         # continuous action space
         return self._rng.uniform(0, 1, (self.action_dim,))
     
-class StochasticContinuousTimeCRN(ContinuousTimeDiscreteActionCRN):
+class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN):
     """
     S(t) = S(0) + Y1 + Y2 + Y3
     """
