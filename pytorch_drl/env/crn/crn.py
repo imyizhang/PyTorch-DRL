@@ -14,7 +14,7 @@ from .ref_trajectory import ConstantRefTrajectory
 
 def make(cls: str, **kwargs):
     if cls == 'CRN':
-        return ContinuousTimeCRN(**kwargs)
+        return ContinuousTimeDiscreteActionCRN(**kwargs)
     elif cls == 'CRNContinuous':
         return ContinuousTimeContinuousActionCRN(**kwargs)
     else:
@@ -50,7 +50,7 @@ A = np.exp(A_c * T_s)
 B = np.linalg.inv(A_c) @ (A - np.eye(A.shape[0])) @ B_c
 
 
-class ContinuousTimeCRN(Env):
+class ContinuousTimeDiscreteActionCRN(Env):
     """
     ds / dt = A_c @ s + B_c @ a
     """
@@ -214,7 +214,7 @@ class ContinuousTimeCRN(Env):
         self._steps_done = 0
 
 
-class ContinuousTimeContinuousActionCRN(ContinuousTimeCRN):
+class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
     """
     s' = A @ s + B @ a
     """
@@ -239,7 +239,7 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeCRN):
         # continuous action space
         return self._rng.uniform(0, 1, (self.action_dim,))
     
-class StochasticContinuousTimeCRN(ContinuousTimeCRN):
+class StochasticContinuousTimeCRN(ContinuousTimeDiscreteActionCRN):
     """
     S(t) = S(0) + Y1 + Y2 + Y3
     """
@@ -254,7 +254,7 @@ class StochasticContinuousTimeCRN(ContinuousTimeCRN):
   ## Quentin to adapt SSA / modified Next Reaction Method from ref code
     
 
-# class DiscreteTimeCRN(ContinuousTimeCRN):
+# class DiscreteTimeCRN(ContinuousTimeDiscreteActionCRN):
 #    """
 #    s' = A @ s + B @ a
 #    """
