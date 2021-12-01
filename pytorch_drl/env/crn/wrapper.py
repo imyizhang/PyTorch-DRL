@@ -16,11 +16,11 @@ class Wrapper(Env):
     def reset(self):
         return self.env.reset()
 
-    def step(self, action: typing.Union[int, np.ndarray], mode: str):
-        return self.env.step(action)
+    def step(self, action: typing.Union[int, np.ndarray], **kwargs):
+        return self.env.step(action, **kwargs)
 
-    def render(self, mode: str = 'human', **kwargs):
-        return self.env.render(mode=mode, **kwargs)
+    def render(self, **kwargs):
+        return self.env.render(**kwargs)
 
     def close(self):
         return self.env.close()

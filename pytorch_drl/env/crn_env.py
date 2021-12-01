@@ -69,14 +69,14 @@ class CRNEnv(Wrapper):
         ).view(1, self.state_dim)
         return state
 
-    def step(self, action, mode):
+    def step(self, action, **kwargs):
         # discrete action space
         if self.discrete:
             action = action.cpu().detach().item()
         # continuous action space
         else:
             action = action.view(-1).cpu().detach().numpy()
-        state, reward, done, info = self.env.step(action, mode)
+        state, reward, done, info = self.env.step(action, **kwargs)
         state = torch.as_tensor(
             state,
             dtype=self.dtype,

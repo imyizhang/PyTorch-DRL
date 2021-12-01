@@ -68,8 +68,13 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # sampling rate
         self._T_s = sampling_rate
         # initialize
-        self._trajectory = []
+        self._init()
+
+    def _init(self):
+        self._actions = []
         self._actions_taken = []
+        self._trajectory = []
+        self._observations = []
         self._rewards = []
         self._steps_done = 0
 
@@ -98,12 +103,13 @@ class ContinuousTimeDiscreteActionCRN(Env):
         return self._rng.randint(0, self.action_dim)
 
     def reset(self) -> np.ndarray:
-        self._trajectory = []
-        self._actions_taken = []
-        self._rewards = []
-        self._steps_done = 0
+        self._init()
+        # state
         state = np.ones((self.state_dim,))
         self._trajectory.append(state)
+        # observation
+        observation = state[2]
+        self._observations.append(observation)
         return state
 
     @staticmethod
@@ -111,16 +117,27 @@ class ContinuousTimeDiscreteActionCRN(Env):
         a = np.array([1.0, action])
         return A_c @ y + B_c @ a
 
-    def step(self, action, mode: str):
+    def step(
+        self,
+        action: typing.Union[float, np.ndarray],
+        mode: str,
+        action_noise: float = 1e-3,
+        observation_noise: float = 1e-3
+    ):
         if self.state is None:
             raise RuntimeError
+        # action
         if self.discrete:
             action = (action + 1) / self.action_dim  # float
         else:
             action = action[0]  # float
-        action = np.clip(action + self._rng.normal(0, 1e-3), 0, 1) # the exploration rate may be entered as parameters
-        # environment dynamics simulation sampling rate
-        delta = 0.1
+        self._actions.append(action)
+        # action taken
+        action += self._rng.normal(0.0, action_noise)
+        action = np.clip(action, 0.0, 1.0)
+        self._actions_taken.append(action)
+        # state
+        delta = 0.1  # environment dynamics simulation sampling rate
         sol = solve_ivp(
             self.func,
             (0, self._T_s + delta),
@@ -130,55 +147,67 @@ class ContinuousTimeDiscreteActionCRN(Env):
         )
         state = sol.y[:, -1]
         self._trajectory.append(state)
-        self._actions_taken.append(action)
-        self._steps_done += 1
+        # observation
         observation = state[2]
+        observation += self._rng.normal(0.0, observation_noise)
+        observation = np.clip(observation, 0.0, np.inf)
+        self._observations.append(observation)
+        # reward
         reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
         reward = self.compute_reward(observation, reference, mode)
         self._rewards.append(reward)
+        # done
         done = False
+        # info
         info = {}
+        # step
+        self._steps_done += 1
         return state, reward, done, info
 
-    def compute_reward(self, achieved_goal, desired_goal, mode: str):
-        abs_dist = abs(desired_goal - achieved_goal)
+    def compute_reward(
+        self,
+        achieved_goal: float,
+        desired_goal: float,
+        mode: str
+    ) -> typing.Union[float, int]:
         tolerance = self.ref_trajectory.tolerance
-        perfection = tolerance * 0.01
-        if mode == 'nega_abs':
-            return (- abs_dist)
+        abs_diff = abs(desired_goal - achieved_goal)
+        if mode == 'negative_abs':
+            reward = -abs_diff
+        elif mode == 'negative_logabs':
+            reward = -np.log(abs_diff)
+        elif mode == 'negative_expabs':
+            reward = -np.exp(abs_diff)
         elif mode == 'inverse_abs':
-            if (abs_dist < perfection):
-                return (1/perfection)
-            else:
-                return (1/abs_distance)
-        elif mode == 'nega_logabs':
-            return (-np.log(abs_dist))
-        elif mode == 'expabs':
-            return (np.exp(abs_dist))
+            reward = 1. / abs_diff
         elif mode == 'percentage':
-            return (1. - abs_dist / desired_goal)
+            reward = 1. - abs_diff / desired_goal
         elif mode == 'tolerance':
-            return 1 if (abs_dist / desired_goal < 2 * tolerance) else 0
-        elif mode == 'graded_tolerance':
-            return (1. - abs_dist / desired_goal) if (abs_dist / desired_goal < 2 * tolerance) else 0
+            reward = 1 if (abs_diff / desired_goal < tolerance) else 0
+        elif mode == 'percentage_tolerance':
+            reward = (1. - abs_diff / desired_goal) if (abs_diff / desired_goal < tolerance) else 0.
         else:
             raise RuntimeError
+        return reward
 
     def render(
         self,
         mode: str = 'human',
+        actions: typing.Optional[typing.List] = None,
         trajectory: typing.Optional[typing.List] = None,
-        actions_taken: typing.Optional[typing.List] = None,
+        rewards: typing.Optional[typing.List] = None,
         steps_done: typing.Optional[int] = None
     ) -> None:
-        if (self.state is None) and (not trajectory):
+        replay = not ((not actions) and (not trajectory) and (not rewards) or (not steps_done))
+        if (self.state is None) and (not replay):
             raise RuntimeError
         # for replaying
-        _trajectory = self._trajectory if trajectory is None else trajectory
-        _actions_taken = self._actions_taken if actions_taken is None else actions_taken
-        ## Add line here to retrieve stagewise reward
-        _rewads = self._rewards
-        _steps_done = self._steps_done if steps_done is None else steps_done
+        _actions = actions if replay else self._actions
+        _actions_taken = None if replay else self._actions_taken
+        _trajectory = trajectory if replay else self._trajectory
+        _observations = None if replay else self._observations
+        _rewards = rewards if replay else self._rewards
+        _steps_done = steps_done if replay else self._steps_done
         # simulation sampling rate
         delta = 0.1
         # reference trajectory and tolerance margin
@@ -187,41 +216,82 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # sfGFP
         T = np.arange(0, self._T_s * _steps_done + self._T_s, self._T_s)
         R, P, G = np.stack(_trajectory, axis=1)
+        # fluorescent sfGFP observed
+        G_observed = np.array(_observations) if _observations is not None else None
         # intensity
         t_u = np.concatenate([
            np.arange(self._T_s * i, self._T_s * (i + 1) + 1) for i in range(_steps_done)
         ])
-        u = np.array(_actions_taken).repeat(self._T_s + 1) * 100
+        u = np.array(_actions).repeat(self._T_s + 1) * 100
+        u_applied = np.array(_actions_taken).repeat(self._T_s + 1) * 100 if _actions_taken is not None else None
+        # reward
+        reward = np.array(_rewards)
         # plot
-        fig, axs = plt.subplots(
-            nrows=3,
-            ncols=1, ## Change this to 2, to have the evolution of the stepwise reward on the side
-            sharex=True,
-            gridspec_kw={'height_ratios': [2, 1, 1]}
-        )
-        axs[0].plot(t, ref_trajectory, '--', color='grey')
-        axs[0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
         if mode == 'human':
-            axs[0].plot(T, G, 'o-', label='G', color='g')
+            fig, axs = plt.subplots(
+                nrows=2,
+                ncols=1,
+                figsize=(10, 5),
+                sharex=True,
+                gridspec_kw={'height_ratios': [2, 1]}
+            )
+            fig.tight_layout()
+            # subplot fluorescent sfGFP
+            axs[0].plot(t, ref_trajectory, '--', color='grey')
+            axs[0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
+            axs[0].plot(T, G, 'o-', label='G', color='green')
+            if G_observed is not None:
+                axs[0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
+            axs[0].set_ylabel('fluorescent sfGFP (1/min)')
+            axs[0].legend(framealpha=0.2)
+            # subplot intensity
+            axs[1].plot(t_u, u, '-', label='u')
+            if u_applied is not None:
+                axs[1].plot(t_u, u_applied, '--', label='u applied', alpha=0.5)
+            axs[1].set_xlabel('Time (min)')
+            axs[1].set_ylabel('intensity (%)')
+            axs[1].legend(framealpha=0.2)
+            plt.show()
         else:
-            axs[0].plot(T, R, 'o-', label='R', color='r')
-            axs[0].plot(T, P, 'o-', label='P', color='b')
-            axs[0].plot(T, G, 'o-', label='G', color='g')
-        axs[0].set_ylabel('sfGFP (1/min)')
-        axs[0].legend()
-        axs[1].plot(t_u, u)
-        axs[1].set_xlabel('Time (min)')
-        axs[1].set_ylabel('intensity (%)')
-        ## Add an axis to show evolution of stepwise reward in 2nd column
-        axs[2].plot(_rewads)
-        axs[2].set_ylabel('rewads')
-        plt.show()
+            fig, axs = plt.subplots(
+                nrows=2,
+                ncols=2,
+                figsize=(10, 5),
+                sharex=True,
+                gridspec_kw={'height_ratios': [2, 1]}
+            )
+            fig.tight_layout()
+            # subplot sfGFP
+            axs[0, 0].plot(t, ref_trajectory, '--', color='grey')
+            axs[0, 0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
+            axs[0, 0].plot(T, R, 'o-', label='R', color='red')
+            axs[0, 0].plot(T, P, 'o-', label='P', color='blue')
+            axs[0, 0].plot(T, G, 'o-', label='G', color='green')
+            axs[0, 0].set_ylabel('sfGFP (1/min)')
+            axs[0, 0].legend(framealpha=0.2)
+            # subplot intensity
+            axs[1, 0].plot(t_u, u, '-', label='u')
+            if u_applied is not None:
+                axs[1, 0].plot(t_u, u_applied, '--', label='u applied', alpha=0.5)
+            axs[1, 0].set_xlabel('Time (min)')
+            axs[1, 0].set_ylabel('intensity (%)')
+            axs[1, 0].legend(framealpha=0.2)
+            # subplot fluorescent sfGFP
+            axs[0, 1].plot(t, ref_trajectory, '--', color='grey')
+            axs[0, 1].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
+            axs[0, 1].plot(T, G, 'o-', label='G', color='green')
+            if G_observed is not None:
+                axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
+            axs[0, 1].set_ylabel('fluorescent sfGFP (1/min)')
+            axs[0, 1].legend(framealpha=0.2)
+            # subplot reward
+            axs[1, 1].plot(T[1:], reward)
+            axs[1, 1].set_xlabel('Time (min)')
+            axs[1, 1].set_ylabel('reward')
+            plt.show()
 
     def close(self) -> None:
-        self._trajectory = []
-        self._actions_taken = []
-        self._rewards = []
-        self._steps_done = 0
+        self._init()
 
 
 class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
@@ -249,6 +319,7 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
         # continuous action space
         return self._rng.uniform(0, 1, (self.action_dim,))
 
+
 class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN):
     """
     S(t) = S(0) + Y1 + Y2 + Y3
@@ -261,100 +332,121 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
     ) -> None:
         super().__init__(ref_trajectory, sampling_rate)
 
-    def step(self, action, mode: str):
-            if self.state is None:
-                raise RuntimeError
-            if self.discrete:
-                action = (action + 1) / self.action_dim  # float
-            else:
-                action = action[0]  # float
-            ####
-            # A maximum number of steps to run before breaking.
-            maxi = T_s*10**5
+    def step(
+        self,
+        action: typing.Union[float, np.ndarray],
+        mode: str,
+        action_noise: float = 1e-3,
+        observation_noise: float = 1e-3
+    ):
+        if self.state is None:
+            raise RuntimeError
+        # action
+        if self.discrete:
+            action = (action + 1) / self.action_dim  # float
+        else:
+            action = action[0]  # float
+        self._actions.append(action)
+        # action taken
+        action += self._rng.normal(0.0, action_noise)
+        action = np.clip(action, 0.0, 1.0)
+        self._actions_taken.append(action)
+        # state
+        ####
+        # A maximum number of steps to run before breaking.
+        maxi = T_s*10**5
 
-            # Define all rate parameters in the model.
-            # Each column is a reaction vector: \zeta_k = y_k' - y_k.
-            # Total number of reaction channels in the model.
-            k = np.array([b_r*action, b_p, d_r, d_p, d_p, k_m, k_m])
-            zeta = np.array([[0,  0,  0,  0,  0, 0, 0],
-                    [1,  0, -1,  0,  0,  0, 0],
-                    [0,  1,  0, -1, 0,  -1, +1],
-                    [0,  0,  0,  0,  -1, +1, -1]])
-            R = zeta.shape[1]
+        # Define all rate parameters in the model.
+        # Each column is a reaction vector: \zeta_k = y_k' - y_k.
+        # Total number of reaction channels in the model.
+        k = np.array([b_r*action, b_p, d_r, d_p, d_p, k_m, k_m])
+        zeta = np.array([[ 0,  0,  0,  0,  0,  0,  0],
+                         [+1,  0, -1,  0,  0,  0,  0],
+                         [ 0, +1,  0, -1,  0, -1, +1],
+                         [ 0,  0,  0,  0, -1, +1, -1]])
+        R = zeta.shape[1]
 
-            # initialize: x1 free gene, x2 mRNA, x3 immature proteins, x4 mature proteins.
-            # A vector holding the jump times of the trajectory.
-            # A matrix whose columns gives the state of the model at the jump times.
-            # Initialize the state.
-            # a vector holding the intensities of the reaction channels.
-            # vectors for the integrated intensity functions and the next jump times of the unit Poisson processes.
-            # vector holding actual times before next jumps in each reaction channel.
-            initial = np.array([random.randint(1,3), random.randint(1, 20), random.randint(0,10), random.randint(0,10)])
-            T = np.zeros(maxi)
-            sol = np.zeros((zeta.shape[0],maxi))
-            sol[:,0] = initial
-            lamb = np.zeros(R)
-            Tk = np.zeros(R)
-            Pk = np.zeros(R)
-            t = np.zeros(R)
+        # initialize: x1 free gene, x2 mRNA, x3 immature proteins, x4 mature proteins.
+        # A vector holding the jump times of the trajectory.
+        # A matrix whose columns gives the state of the model at the jump times.
+        # Initialize the state.
+        # a vector holding the intensities of the reaction channels.
+        # vectors for the integrated intensity functions and the next jump times of the unit Poisson processes.
+        # vector holding actual times before next jumps in each reaction channel.
+        initial = np.array([random.randint(1,3), random.randint(1, 20), random.randint(0,10), random.randint(0,10)])
+        T = np.zeros(maxi)
+        sol = np.zeros((zeta.shape[0],maxi))
+        sol[:,0] = initial
+        lamb = np.zeros(R)
+        Tk = np.zeros(R)
+        Pk = np.zeros(R)
+        t = np.zeros(R)
 
-            # uniform random variables in order to find the first jump time of each unit Poisson process.
-            # set first jump time of each unit Poisson process.
-            r = np.random.rand(R)
-            Pk = np.log(1./r)
+        # uniform random variables in order to find the first jump time of each unit Poisson process.
+        # set first jump time of each unit Poisson process.
+        r = np.random.rand(R)
+        Pk = np.log(1./r)
 
-            for i in range(0, maxi):
+        for i in range(0, maxi):
 
-                # Set values for the intensity functions.
-                lamb[0] = k[0]*sol[0,i]
-                lamb[1] = k[1]*sol[1,i]
-                lamb[2] = k[2]*sol[1,i]
-                lamb[3] = k[3]*sol[2,i]
-                lamb[4] = k[4]*sol[3,i]
-                lamb[5] = k[5]*sol[2,i]
-                lamb[6] = k[6]*sol[3,i]
+            # Set values for the intensity functions.
+            lamb[0] = k[0]*sol[0,i]
+            lamb[1] = k[1]*sol[1,i]
+            lamb[2] = k[2]*sol[1,i]
+            lamb[3] = k[3]*sol[2,i]
+            lamb[4] = k[4]*sol[3,i]
+            lamb[5] = k[5]*sol[2,i]
+            lamb[6] = k[6]*sol[3,i]
 
-                # Find the amount of time required for each reaction channel to fire
-                # (under the assumption no other channel fires first)
-                # Find the index of the where the minimum is achieved.
-                for c in range(0,R):
-                    if lamb[c] != 0:
-                        t[c] = (Pk[c] - Tk[c])/lamb[c]
-                    else:
-                        t[c] = np.inf
+            # Find the amount of time required for each reaction channel to fire
+            # (under the assumption no other channel fires first)
+            # Find the index of the where the minimum is achieved.
+            for c in range(0,R):
+                if lamb[c] != 0:
+                    t[c] = (Pk[c] - Tk[c])/lamb[c]
+                else:
+                    t[c] = np.inf
 
-                loc = 0
-                for ind in range(1,R):
-                    if t[loc]>t[ind]:
-                        loc = ind
+            loc = 0
+            for ind in range(1,R):
+                if t[loc]>t[ind]:
+                    loc = ind
 
-                # If we have reached our end time, break the script.
-                if T[i] + t[loc] > T_s:
-                    count = i
-                    print(T[i] + t[loc])
-                    break
+            # If we have reached our end time, break the script.
+            if T[i] + t[loc] > T_s:
+                count = i
+                print(T[i] + t[loc])
+                break
 
-                # update the state of the system, and catalog the jump time.
-                # update the integrated intensity functions.
-                sol[:,i+1] = sol[:,i] + zeta[:,loc]
-                T[i+1] = T[i] + t[loc]
-                for c in range(0,R):
-                    Tk[c] = Tk[c] + lamb[c]*t[loc]
+            # update the state of the system, and catalog the jump time.
+            # update the integrated intensity functions.
+            sol[:,i+1] = sol[:,i] + zeta[:,loc]
+            T[i+1] = T[i] + t[loc]
+            for c in range(0,R):
+                Tk[c] = Tk[c] + lamb[c]*t[loc]
 
-                # find the next jump time of the one unit Poisson process that fired.
-                r = np.random.rand()
-                Pk[loc] = Pk[loc] + np.log(1/r)
-            ####
-            state = sol[:,count]
-            self._trajectory.append(state)
-            self._actions_taken.append(action)
-            self._steps_done += 1
-            observation = state[3] # gene copy number added here vs. deterministic case
-            reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
-            reward = self.compute_reward(observation, reference, mode)
-            done = False
-            info = {}
-            return state, reward, done, info
+            # find the next jump time of the one unit Poisson process that fired.
+            r = np.random.rand()
+            Pk[loc] = Pk[loc] + np.log(1/r)
+        ####
+        state = sol[:,count]
+        self._trajectory.append(state)
+        # observation
+        observation = state[3]  # gene copy number added here vs. deterministic case
+        observation += self._rng.normal(0.0, observation_noise)
+        observation = np.clip(observation, 0.0, np.inf)
+        self._observations.append(observation)
+        # reward
+        reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
+        reward = self.compute_reward(observation, reference, mode)
+        self._rewards.append(reward)
+        # done
+        done = False
+        # info
+        info = {}
+        # step
+        self._steps_done += 1
+        return state, reward, done, info
 
 
 # class DiscreteTimeCRN(ContinuousTimeDiscreteActionCRN):
