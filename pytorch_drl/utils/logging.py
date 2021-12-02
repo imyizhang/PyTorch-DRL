@@ -10,6 +10,7 @@ class EpisodeLogger:
         self.episode_actions = []
         self.episode_duration = []
         self.episode_reward = []
+        self.episode_tolerance = []
         self.episode_loss = []
         self._init()
 
@@ -30,6 +31,10 @@ class EpisodeLogger:
         return self.episode_reward
 
     @property
+    def tolerance(self):
+        return self.episode_tolerance
+
+    @property
     def losses(self):
         return self.episode_loss
 
@@ -38,13 +43,14 @@ class EpisodeLogger:
         self._actions_taken = []
         self._steps_done = 0
         self._reward_aggregator = 0.0
+        self._tolerance_aggregator = 0
         self._loss_aggregator = 0.0
 
     def reset(self, state):
         _state = state.view(-1).cpu().detach().numpy()
         self._trajectory.append(_state)
 
-    def step(self, env, state, action, reward, loss):
+    def step(self, env, state, action, reward, info, loss):
         # torch.tensor -> numpy.ndarray
         _state = state.view(-1).cpu().detach().numpy()
         if env.discrete:
@@ -59,6 +65,7 @@ class EpisodeLogger:
         self._actions_taken.append(_action)
         self._steps_done += 1
         self._reward_aggregator += _reward
+        self._tolerance_aggregator += info['tolerance']
         self._loss_aggregator += _loss
 
     def episode(self):
@@ -66,5 +73,6 @@ class EpisodeLogger:
         self.episode_actions.append(self._actions_taken)
         self.episode_duration.append(self._steps_done)
         self.episode_reward.append(self._reward_aggregator)
+        self.episode_tolerance.append(self._tolerance_aggregator / self._steps_done)
         self.episode_loss.append(self._loss_aggregator / self._steps_done)
         self._init()

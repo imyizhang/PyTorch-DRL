@@ -159,7 +159,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # done
         done = False
         # info
-        info = {}
+        info = {'tolerance': self.compute_reward(observation, reference, 'tolerance')}
         # step
         self._steps_done += 1
         return state, reward, done, info
@@ -356,6 +356,11 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         # A maximum number of steps to run before breaking.
         maxi = T_s*10**5
 
+        d_r = 0.0956 ## these 4 model parameters may be entered as parameters
+        d_p = 0.0214
+        k_m = 0.0116
+        b_r = 0.0965
+
         # Define all rate parameters in the model.
         # Each column is a reaction vector: \zeta_k = y_k' - y_k.
         # Total number of reaction channels in the model.
@@ -378,14 +383,14 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         sol = np.zeros((zeta.shape[0],maxi))
         sol[:,0] = initial
         lamb = np.zeros(R)
-        Tk = np.zeros(R)
-        Pk = np.zeros(R)
+        T_k = np.zeros(R)
+        P_k = np.zeros(R)
         t = np.zeros(R)
 
         # uniform random variables in order to find the first jump time of each unit Poisson process.
         # set first jump time of each unit Poisson process.
-        r = np.random.rand(R)
-        Pk = np.log(1./r)
+        r_k = self._rng.rand(R)
+        P_k = np.log(1. / r_k)
 
         for i in range(0, maxi):
 
@@ -426,7 +431,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
                 Tk[c] = Tk[c] + lamb[c]*t[loc]
 
             # find the next jump time of the one unit Poisson process that fired.
-            r = np.random.rand()
+            r = self._rng.uniform(0, 1)
             Pk[loc] = Pk[loc] + np.log(1/r)
         ####
         state = sol[:,count]
@@ -443,7 +448,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         # done
         done = False
         # info
-        info = {}
+        info = {'tolerance': self.compute_reward(observation, reference, 'tolerance')}
         # step
         self._steps_done += 1
         return state, reward, done, info

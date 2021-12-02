@@ -43,7 +43,7 @@ class OffPolicyTrainer(BaseTrainer):
                 # learn from the experience
                 loss = self.agent.learn()
                 # logging
-                self.logger.step(self.env, state, action, reward, loss)
+                self.logger.step(self.env, state, action, reward, info, loss)
                 print(episode, step, reward.item(), loss.item())
                 # update the state
                 state = next_state
