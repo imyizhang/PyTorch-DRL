@@ -62,6 +62,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
         sampling_rate: float = 10,
         observation_noise: float = 1e-3,
+        action_noise: float = 1e-3,
         theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
         mode: str = 'human'
     ) -> None:
@@ -70,8 +71,10 @@ class ContinuousTimeDiscreteActionCRN(Env):
         self.ref_trajectory = ref_trajectory
         # sampling rate
         self._T_s = sampling_rate
-        # observation_noise
+        # observation noise
         self._observation_noise = observation_noise
+        # action noise
+        self._action_noise = action_noise
         # parameters for continuous-time fold-change model
         self._theta = theta
         self._d_r, self._d_p, self._k_m, self._b_r = self._theta
@@ -163,7 +166,6 @@ class ContinuousTimeDiscreteActionCRN(Env):
         self,
         action: typing.Union[float, np.ndarray],
         reward_func: str,
-        action_noise: float = 1e-3
     ):
         if self.state is None:
             raise RuntimeError
@@ -174,7 +176,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
             action = action[0]  # float
         self._actions.append(action)
         # action taken
-        action += self._rng.normal(0.0, action_noise)
+        action += self._rng.normal(0.0, self._action_noise)
         action = np.clip(action, 0.0, 1.0)
         self._actions_taken.append(action)
         # state
