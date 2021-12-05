@@ -45,7 +45,7 @@ C = np.array([[0.0, 0.0, 1.0]])
 # refer to https://static-content.springer.com/esm/art%3A10.1038%2Fncomms12546/MediaObjects/41467_2016_BFncomms12546_MOESM1324_ESM.pdf
 # equivalent discrete-time fold-change model:
 #     s' = A @ s + B @ a
-T_s = 10  # experimental observation sampling rate ## this may be entered as parameters
+# T_s = 10  # experimental observation sampling rate ## this may be entered as parameters
 
 A = np.exp(A_c * T_s)
 
@@ -436,7 +436,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         # state
         ####
         # A maximum number of steps to run before breaking.
-        maxi = T_s*10**5
+        maxi = self._T_s*10**5
 
         d_r = 0.0956 ## these 4 model parameters may be entered as parameters
         d_p = 0.0214
@@ -500,7 +500,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
                     loc = ind
 
             # If we have reached our end time, break the script.
-            if T[i] + t[loc] > T_s:
+            if T[i] + t[loc] > self._T_s:
                 count = i
                 print(T[i] + t[loc])
                 break
