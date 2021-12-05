@@ -83,7 +83,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
                               [0.0, 0.0]])
         # mode, either noise corrupted G (and t) or perfect R, P, G (and t)
         # would be observed by an agent
-        self._mode = mode
+        self._observation_mode = mode
         # initialize
         self._init()
 
@@ -105,7 +105,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
     def state(self) -> typing.Optional[typing.List[np.ndarray]]:
         if self._trajectory and self._observations:
             # noise corrupted G (and t) observed
-            if self._mode == 'human':
+            if self._observation_mode == 'human':
                 return self._observations[self._steps_done]
             # perfect R, P, G (and t) observed
             return self._trajectory[self._steps_done]
@@ -114,7 +114,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
     @property
     def state_dim(self) -> int:
         # noise corrupted G (and t) observed
-        if self._mode == 'human':
+        if self._observation_mode == 'human':
             return 1  # G
         # perfect R, P, G (and t) observed
         return 3  # R, P, G
@@ -141,7 +141,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         observation = self._observe(state)
         self._observations.append(observation)
         # noise corrupted G (and t) observed
-        if self._mode == 'human':
+        if self._observation_mode == 'human':
             return observation
         # perfect R, P, G (and t) observed
         return state
@@ -203,7 +203,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # step
         self._steps_done += 1
         # noise corrupted G (and t) observed
-        if self._mode == 'human':
+        if self._observation_mode == 'human':
             return observation, reward, done, info
         # perfect R, P, G (and t) observed
         return state, reward, done, info
