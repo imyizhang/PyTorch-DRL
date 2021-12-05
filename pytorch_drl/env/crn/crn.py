@@ -31,25 +31,33 @@ def make(cls: str, **kwargs):
 # d_p = 0.0214
 # k_m = 0.0116
 # b_r = 0.0965
-
+#
 # A_c = np.array([[-d_r, 0.0, 0.0],
 #                 [d_p + k_m, -d_p - k_m, 0.0],
 #                 [0.0, d_p, -d_p]])
-
+#
 # B_c = np.array([[d_r, b_r],
 #                 [0.0, 0.0],
 #                 [0.0, 0.0]])
-
+#
 # C = np.array([[0.0, 0.0, 1.0]])
 
 # refer to https://static-content.springer.com/esm/art%3A10.1038%2Fncomms12546/MediaObjects/41467_2016_BFncomms12546_MOESM1324_ESM.pdf
 # equivalent discrete-time fold-change model:
 #     s' = A @ s + B @ a
-# T_s = 10  # experimental observation sampling rate ## this may be entered as parameters
-
+# with experimental observation sampling rate
+# T_s = 10
+#
 # A = np.exp(A_c * T_s)
-
+#
 # B = np.linalg.inv(A_c) @ (A - np.eye(A.shape[0])) @ B_c
+#
+# C = np.array([[0.0, 0.0, 1.0]])
+
+d_r = 0.0956
+d_p = 0.0214
+k_m = 0.0116
+b_r = 0.0965
 
 
 class ContinuousTimeDiscreteActionCRN(Env):
@@ -64,7 +72,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         observation_noise: float = 1e-3,
         action_noise: float = 1e-3,
         theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
-        observation_mode: str = 'partially_observed'
+        observation_mode: str = 'partially_observed',
     ) -> None:
         super().__init__()
         # reference trajectory generator
@@ -84,7 +92,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         self._B_c = np.array([[self._d_r, self._b_r],
                               [0.0, 0.0],
                               [0.0, 0.0]])
-        # mode, either noise corrupted G (and t) or perfect R, P, G (and t)
+        # observation mode, either noise corrupted G (and t) or perfect R, P, G (and t)
         # would be observed by an agent
         self._observation_mode = observation_mode
         # initialize
@@ -144,7 +152,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         observation = self._observe(state)
         self._observations.append(observation)
         # noise corrupted G (and t) observed
-        if self._observation_mode == 'human':
+        if self._observation_mode == 'partially_observed':
             return observation
         # perfect R, P, G (and t) observed
         return state
@@ -370,15 +378,17 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
         sampling_rate: float = 10,
         observation_noise: float = 1e-3,
+        action_noise: float = 1e-3,
         theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
-        mode: str = 'human'
+        observation_mode: str = 'partially_observed',
     ) -> None:
         super().__init__(
             ref_trajectory,
             sampling_rate,
             observation_noise,
+            action_noise,
             theta,
-            mode
+            observation_mode,
     )
 
     @property
@@ -405,15 +415,17 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
         sampling_rate: float = 10,
         observation_noise: float = 1e-3,
+        action_noise: float = 1e-3,
         theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
-        mode: str = 'human'
+        observation_mode: str = 'partially_observed',
     ) -> None:
         super().__init__(
             ref_trajectory,
             sampling_rate,
             observation_noise,
+            action_noise,
             theta,
-            mode
+            observation_mode,
     )
 
     def step(

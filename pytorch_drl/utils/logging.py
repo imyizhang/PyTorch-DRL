@@ -7,7 +7,7 @@ class EpisodeLogger:
     def __init__(self):
 
         self.episode_trajectory = []
-        self.episode_actions = []
+        self.episode_action = []
         self.episode_duration = []
         self.episode_reward = []
         self.episode_state_in_tolerance = []
@@ -20,7 +20,7 @@ class EpisodeLogger:
 
     @property
     def actions(self):
-        return self.episode_actions
+        return self.episode_action
 
     @property
     def rewards(self):
@@ -70,7 +70,7 @@ class EpisodeLogger:
 
     def episode(self):
         self.episode_trajectory.append(self._trajectory)
-        self.episode_actions.append(self._actions)
+        self.episode_action.append(self._actions)
         self.episode_reward.append(self._rewards)
         self.episode_duration.append(self._steps_done)
         self.episode_state_in_tolerance.append(self._state_in_tolerance_aggregator / self._steps_done)
