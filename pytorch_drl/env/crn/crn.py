@@ -108,7 +108,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
     def state(self) -> typing.Optional[typing.List[np.ndarray]]:
         if self._trajectory and self._observations:
             # noise corrupted G (and t) observed
-            if self._observation_mode == 'human':
+            if self._observation_mode == 'partially_observed':
                 return self._observations[self._steps_done]
             # perfect R, P, G (and t) observed
             return self._trajectory[self._steps_done]
@@ -117,7 +117,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
     @property
     def state_dim(self) -> int:
         # noise corrupted G (and t) observed
-        if self._observation_mode == 'human':
+        if self._observation_mode == 'partially_observed':
             return 1  # G
         # perfect R, P, G (and t) observed
         return 3  # R, P, G
@@ -205,7 +205,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # step
         self._steps_done += 1
         # noise corrupted G (and t) observed
-        if self._observation_mode == 'human':
+        if self._observation_mode == 'partially_observed':
             return observation, reward, done, info
         # perfect R, P, G (and t) observed
         return state, reward, done, info
@@ -238,7 +238,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
 
     def render(
         self,
-        mode: str = 'human',
+        render_mode: str = 'human',
         actions: typing.Optional[typing.List] = None,
         trajectory: typing.Optional[typing.List] = None,
         rewards: typing.Optional[typing.List] = None,
@@ -253,7 +253,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # noise corrupted actions taken, unknown for replay
         _actions_taken = None if replay else self._actions_taken
         # noise corrupted G (and t) observed
-        if self._observation_mode == 'human':
+        if self._observation_mode == 'partially_observed':
             # perfect R, P, G states, unknown for replay
             _trajectory = None if replay else self._trajectory
             # noise corrupted G
