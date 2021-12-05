@@ -65,7 +65,6 @@ class EpisodeLogger:
         self._actions.append(_action)
         self._rewards.append(_reward)
         self._steps_done += 1
-        self._reward_aggregator += _reward
         self._tolerance_aggregator += info['tolerance']
         self._loss_aggregator += _loss
 
