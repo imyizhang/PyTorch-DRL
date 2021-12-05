@@ -276,7 +276,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         T = np.arange(0, self._T_s * _steps_done + self._T_s, self._T_s)
         R, P, G = np.stack(_trajectory, axis=1) if _trajectory is not None else (None, None, None)
         # fluorescent sfGFP observed
-        G_observed = np.stack(_observations, axis=1) if _observations is not None else None
+        G_observed = np.concatenate(_observations, axis=0) if _observations is not None else None
         # intensity
         t_u = np.concatenate([
             np.arange(self._T_s * i, self._T_s * (i + 1) + 1) for i in range(_steps_done)
@@ -324,12 +324,12 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot sfGFP
             axs[0, 0].plot(t, ref_trajectory, '--', color='grey')
             axs[0, 0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            if (G, P, G) == (None, None, None):
+            if (R is not None) and (P is not None) and (G is not None):
                 axs[0, 0].plot(T, R, 'o-', label='R', color='red')
                 axs[0, 0].plot(T, P, 'o-', label='P', color='blue')
                 axs[0, 0].plot(T, G, 'o-', label='G', color='green')
             if G_observed is not None:
-                axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
+                axs[0, 0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
             axs[0, 0].set_ylabel('sfGFP (1/min)')
             axs[0, 0].legend(framealpha=0.2)
             # subplot intensity
