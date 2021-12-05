@@ -288,7 +288,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # reward
         reward = np.array(_rewards)
         # plot
-        if mode == 'human':
+        if render_mode == 'human':
             fig, axs = plt.subplots(
                 nrows=2,
                 ncols=1,
