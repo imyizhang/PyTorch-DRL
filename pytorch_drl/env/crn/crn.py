@@ -40,16 +40,16 @@ def make(cls: str, **kwargs):
 #                 [0.0, 0.0],
 #                 [0.0, 0.0]])
 
-C = np.array([[0.0, 0.0, 1.0]])
+# C = np.array([[0.0, 0.0, 1.0]])
 
 # refer to https://static-content.springer.com/esm/art%3A10.1038%2Fncomms12546/MediaObjects/41467_2016_BFncomms12546_MOESM1324_ESM.pdf
 # equivalent discrete-time fold-change model:
 #     s' = A @ s + B @ a
 # T_s = 10  # experimental observation sampling rate ## this may be entered as parameters
 
-A = np.exp(A_c * T_s)
+# A = np.exp(A_c * T_s)
 
-B = np.linalg.inv(A_c) @ (A - np.eye(A.shape[0])) @ B_c
+# B = np.linalg.inv(A_c) @ (A - np.eye(A.shape[0])) @ B_c
 
 
 class ContinuousTimeDiscreteActionCRN(Env):
