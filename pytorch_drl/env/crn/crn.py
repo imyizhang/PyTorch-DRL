@@ -61,33 +61,63 @@ class ContinuousTimeDiscreteActionCRN(Env):
         self,
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
         sampling_rate: float = 10,
+        observation_noise: float = 1e-3,
+        theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
+        mode: str = 'human'
     ) -> None:
         super().__init__()
         # reference trajectory generator
         self.ref_trajectory = ref_trajectory
         # sampling rate
         self._T_s = sampling_rate
+        # observation_noise
+        self._observation_noise = observation_noise
+        # parameters for continuous-time fold-change model
+        self._theta = theta
+        self._d_r, self._d_p, self._k_m, self._b_r = self._theta
+        self._A_c = np.array([[-self._d_r, 0.0, 0.0],
+                              [self._d_p + self._k_m, -self._d_p - self._k_m, 0.0],
+                              [0.0, self._d_p, -self._d_p]])
+        self._B_c = np.array([[self._d_r, self._b_r],
+                              [0.0, 0.0],
+                              [0.0, 0.0]])
+        # mode, either noise corrupted G (and t) or perfect R, P, G (and t)
+        # would be observed by an agent
+        self._mode = mode
         # initialize
         self._init()
 
     def _init(self):
+        # actions input
         self._actions = []
+        # noise corrupted actions taken
         self._actions_taken = []
+        # perfect R, P, G (and t) states
         self._trajectory = []
+        # noise corrupted G (and t)
         self._observations = []
+        # reward measuring the distance between perfect G and reference trajectory
         self._rewards = []
+        # steps done
         self._steps_done = 0
 
     @property
     def state(self) -> typing.Optional[typing.List[np.ndarray]]:
-        if self._trajectory:
+        if self._trajectory and self._observations:
+            # noise corrupted G (and t) observed
+            if self._mode == 'human':
+                return self._observations[self._steps_done]
+            # perfect R, P, G (and t) observed
             return self._trajectory[self._steps_done]
-        else:
-            return None
+        return None
 
     @property
     def state_dim(self) -> int:
-        return A_c.shape[1]
+        # noise corrupted G (and t) observed
+        if self._mode == 'human':
+            return 1  # G
+        # perfect R, P, G (and t) observed
+        return 3  # R, P, G
 
     @property
     def discrete(self) -> bool:
@@ -105,24 +135,35 @@ class ContinuousTimeDiscreteActionCRN(Env):
     def reset(self) -> np.ndarray:
         self._init()
         # state
-        state = np.ones((self.state_dim,))
+        state = np.ones((3,))  # R = P = G = 1
         self._trajectory.append(state)
         # observation
-        observation = state[2]
+        observation = self._observe(state)
         self._observations.append(observation)
+        # noise corrupted G (and t) observed
+        if self._mode == 'human':
+            return observation
+        # perfect R, P, G (and t) observed
         return state
 
-    @staticmethod
-    def func(t: float, y: np.ndarray, action: float) -> np.ndarray:
+    def _observe(self, state):
+        # G
+        observation = state[[2]]
+        # noise corrupted G
+        observation += self._rng.normal(0.0, self._observation_noise)
+        # clip G to [0, inf)
+        observation = np.clip(observation, 0.0, np.inf)
+        return observation
+
+    def _func(self, t: float, y: np.ndarray, action: float) -> np.ndarray:
         a = np.array([1.0, action])
-        return A_c @ y + B_c @ a
+        return self._A_c @ y + self._B_c @ a
 
     def step(
         self,
         action: typing.Union[float, np.ndarray],
-        mode: str,
-        action_noise: float = 1e-3,
-        observation_noise: float = 1e-3
+        reward_func: str,
+        action_noise: float = 1e-3
     ):
         if self.state is None:
             raise RuntimeError
@@ -139,52 +180,55 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # state
         delta = 0.1  # environment dynamics simulation sampling rate
         sol = solve_ivp(
-            self.func,
+            self._func,
             (0, self._T_s + delta),
-            self.state,
+            self._trajectory[self._steps_done],
             t_eval=np.arange(0, self._T_s + delta, delta),
             args=(action,),
         )
         state = sol.y[:, -1]
         self._trajectory.append(state)
         # observation
-        observation = state[2]
-        observation += self._rng.normal(0.0, observation_noise)
-        observation = np.clip(observation, 0.0, np.inf)
+        observation = self._observe(state)
         self._observations.append(observation)
         # reward
-        reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
-        reward = self.compute_reward(observation, reference, mode)
+        T = np.array([self._steps_done * self._T_s])
+        reference = self.ref_trajectory(T)[0]
+        reward = self._compute_reward(state[2], reference[0], reward_func)
         self._rewards.append(reward)
         # done
         done = False
         # info
-        info = {'tolerance': self.compute_reward(observation, reference, 'tolerance')}
+        info = {'tolerance': self._compute_reward(state[2], reference[0], 'tolerance')}
         # step
         self._steps_done += 1
+        # noise corrupted G (and t) observed
+        if self._mode == 'human':
+            return observation, reward, done, info
+        # perfect R, P, G (and t) observed
         return state, reward, done, info
 
-    def compute_reward(
+    def _compute_reward(
         self,
         achieved_goal: float,
         desired_goal: float,
-        mode: str
+        func: str
     ) -> typing.Union[float, int]:
         tolerance = self.ref_trajectory.tolerance
         abs_diff = abs(desired_goal - achieved_goal)
-        if mode == 'negative_abs':
+        if func == 'negative_abs':
             reward = -abs_diff
-        elif mode == 'negative_logabs':
+        elif func == 'negative_logabs':
             reward = -np.log(abs_diff)
-        elif mode == 'negative_expabs':
+        elif func == 'negative_expabs':
             reward = -np.exp(abs_diff)
-        elif mode == 'inverse_abs':
+        elif func == 'inverse_abs':
             reward = 1. / abs_diff
-        elif mode == 'percentage':
+        elif func == 'percentage':
             reward = 1. - abs_diff / desired_goal
-        elif mode == 'tolerance':
+        elif func == 'tolerance':
             reward = 1 if (abs_diff / desired_goal < tolerance) else 0
-        elif mode == 'percentage_tolerance':
+        elif func == 'percentage_tolerance':
             reward = (1. - abs_diff / desired_goal) if (abs_diff / desired_goal < tolerance) else 0.
         else:
             raise RuntimeError
@@ -201,13 +245,28 @@ class ContinuousTimeDiscreteActionCRN(Env):
         replay = not ((not actions) and (not trajectory) and (not rewards) or (not steps_done))
         if (self.state is None) and (not replay):
             raise RuntimeError
-        # for replaying
+        # for replay
+        # actions input
         _actions = actions if replay else self._actions
+        # noise corrupted actions taken, unknown for replay
         _actions_taken = None if replay else self._actions_taken
-        _trajectory = trajectory if replay else self._trajectory
-        _observations = None if replay else self._observations
+        # noise corrupted G (and t) observed
+        if self._mode == 'human':
+            # perfect R, P, G states, unknown for replay
+            _trajectory = None if replay else self._trajectory
+            # noise corrupted G
+            _observations = trajectory if replay else self._observations
+        # perfect R, P, G (and t) observed
+        else:
+            # perfect R, P, G states
+            _trajectory = trajectory if replay else self._trajectory
+            # noise corrupted G, unknown for replay
+            _observations = None if replay else self._observations
+        # reward measuring the distance between perfect G and reference trajectory
         _rewards = rewards if replay else self._rewards
+        # steps done
         _steps_done = steps_done if replay else self._steps_done
+        # data
         # simulation sampling rate
         delta = 0.1
         # reference trajectory and tolerance margin
@@ -215,12 +274,12 @@ class ContinuousTimeDiscreteActionCRN(Env):
         ref_trajectory, tolerance_margin = self.ref_trajectory(t)
         # sfGFP
         T = np.arange(0, self._T_s * _steps_done + self._T_s, self._T_s)
-        R, P, G = np.stack(_trajectory, axis=1)
+        R, P, G = np.stack(_trajectory, axis=1) if _trajectory is not None else (None, None, None)
         # fluorescent sfGFP observed
-        G_observed = np.array(_observations) if _observations is not None else None
+        G_observed = np.stack(_observations, axis=1) if _observations is not None else None
         # intensity
         t_u = np.concatenate([
-           np.arange(self._T_s * i, self._T_s * (i + 1) + 1) for i in range(_steps_done)
+            np.arange(self._T_s * i, self._T_s * (i + 1) + 1) for i in range(_steps_done)
         ])
         u = np.array(_actions).repeat(self._T_s + 1) * 100
         u_applied = np.array(_actions_taken).repeat(self._T_s + 1) * 100 if _actions_taken is not None else None
@@ -239,7 +298,8 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot fluorescent sfGFP
             axs[0].plot(t, ref_trajectory, '--', color='grey')
             axs[0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            axs[0].plot(T, G, 'o-', label='G', color='green')
+            if G is not None:
+                axs[0].plot(T, G, 'o-', label='G', color='green')
             if G_observed is not None:
                 axs[0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
             axs[0].set_ylabel('fluorescent sfGFP (1/min)')
@@ -264,9 +324,12 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot sfGFP
             axs[0, 0].plot(t, ref_trajectory, '--', color='grey')
             axs[0, 0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            axs[0, 0].plot(T, R, 'o-', label='R', color='red')
-            axs[0, 0].plot(T, P, 'o-', label='P', color='blue')
-            axs[0, 0].plot(T, G, 'o-', label='G', color='green')
+            if (G, P, G) == (None, None, None):
+                axs[0, 0].plot(T, R, 'o-', label='R', color='red')
+                axs[0, 0].plot(T, P, 'o-', label='P', color='blue')
+                axs[0, 0].plot(T, G, 'o-', label='G', color='green')
+            if G_observed is not None:
+                axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
             axs[0, 0].set_ylabel('sfGFP (1/min)')
             axs[0, 0].legend(framealpha=0.2)
             # subplot intensity
@@ -279,7 +342,8 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot fluorescent sfGFP
             axs[0, 1].plot(t, ref_trajectory, '--', color='grey')
             axs[0, 1].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            axs[0, 1].plot(T, G, 'o-', label='G', color='green')
+            if G is not None:
+                axs[0, 1].plot(T, G, 'o-', label='G', color='green')
             if G_observed is not None:
                 axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
             axs[0, 1].set_ylabel('fluorescent sfGFP (1/min)')
@@ -303,8 +367,17 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
         self,
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
         sampling_rate: float = 10,
+        observation_noise: float = 1e-3,
+        theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
+        mode: str = 'human'
     ) -> None:
-        super().__init__(ref_trajectory, sampling_rate)
+        super().__init__(
+            ref_trajectory,
+            sampling_rate,
+            observation_noise,
+            theta,
+            mode
+    )
 
     @property
     def discrete(self) -> bool:
@@ -329,8 +402,17 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         self,
         ref_trajectory: typing.Callable[[np.ndarray], typing.Any] = ConstantRefTrajectory(),
         sampling_rate: float = 10,
+        observation_noise: float = 1e-3,
+        theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
+        mode: str = 'human'
     ) -> None:
-        super().__init__(ref_trajectory, sampling_rate)
+        super().__init__(
+            ref_trajectory,
+            sampling_rate,
+            observation_noise,
+            theta,
+            mode
+    )
 
     def step(
         self,
