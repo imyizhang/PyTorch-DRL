@@ -27,18 +27,18 @@ def make(cls: str, **kwargs):
 # continuous-time fold-change model:
 #     ds / dt = A_c @ s + B_c @ a
 # with nominal parameters from a maximum-likelihood fit
-d_r = 0.0956 ## these 4 model parameters may be entered as parameters
-d_p = 0.0214
-k_m = 0.0116
-b_r = 0.0965
+# d_r = 0.0956
+# d_p = 0.0214
+# k_m = 0.0116
+# b_r = 0.0965
 
-A_c = np.array([[-d_r, 0.0, 0.0],
-                [d_p + k_m, -d_p - k_m, 0.0],
-                [0.0, d_p, -d_p]])
+# A_c = np.array([[-d_r, 0.0, 0.0],
+#                 [d_p + k_m, -d_p - k_m, 0.0],
+#                 [0.0, d_p, -d_p]])
 
-B_c = np.array([[d_r, b_r],
-                [0.0, 0.0],
-                [0.0, 0.0]])
+# B_c = np.array([[d_r, b_r],
+#                 [0.0, 0.0],
+#                 [0.0, 0.0]])
 
 C = np.array([[0.0, 0.0, 1.0]])
 
