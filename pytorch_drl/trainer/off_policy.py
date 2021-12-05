@@ -24,7 +24,7 @@ class OffPolicyTrainer(BaseTrainer):
         )
         self.logger = EpisodeLogger()
 
-    def __call__(self, mode):
+    def __call__(self, reward_func):
         # set the agent in training mode
         self.agent.train()
         for episode in range(self.num_episodes):
@@ -37,7 +37,7 @@ class OffPolicyTrainer(BaseTrainer):
                 # select an action
                 action = self.agent.act(state)
                 # perform the action and observe new state
-                next_state, reward, done, info = self.env.step(action, mode=mode)
+                next_state, reward, done, info = self.env.step(action, reward_func=reward_func)
                 # buffer the experience
                 self.agent.cache(state, action, reward, done, next_state)
                 # learn from the experience
