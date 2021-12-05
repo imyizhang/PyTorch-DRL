@@ -23,12 +23,12 @@ class EpisodeLogger:
         return self.episode_actions
 
     @property
-    def durations(self):
-        return self.episode_duration
-
-    @property
     def rewards(self):
         return self.episode_reward
+
+    @property
+    def durations(self):
+        return self.episode_duration
 
     @property
     def tolerance(self):
@@ -40,9 +40,9 @@ class EpisodeLogger:
 
     def _init(self):
         self._trajectory = []
-        self._actions_taken = []
+        self._actions = []
+        self._rewards = []
         self._steps_done = 0
-        self._reward_aggregator = 0.0
         self._tolerance_aggregator = 0
         self._loss_aggregator = 0.0
 
@@ -62,7 +62,8 @@ class EpisodeLogger:
         _loss =  loss.cpu().detach().item()
         # step
         self._trajectory.append(_state)
-        self._actions_taken.append(_action)
+        self._actions.append(_action)
+        self._rewards.append(_reward)
         self._steps_done += 1
         self._reward_aggregator += _reward
         self._tolerance_aggregator += info['tolerance']
@@ -70,9 +71,9 @@ class EpisodeLogger:
 
     def episode(self):
         self.episode_trajectory.append(self._trajectory)
-        self.episode_actions.append(self._actions_taken)
+        self.episode_actions.append(self._actions)
+        self.episode_reward.append(self._rewards)
         self.episode_duration.append(self._steps_done)
-        self.episode_reward.append(self._reward_aggregator)
         self.episode_tolerance.append(self._tolerance_aggregator / self._steps_done)
         self.episode_loss.append(self._loss_aggregator / self._steps_done)
         self._init()
