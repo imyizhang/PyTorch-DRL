@@ -37,7 +37,7 @@ class OffPolicyTrainer(BaseTrainer):
                 # select an action
                 action = self.agent.act(state)
                 # perform the action and observe new state
-                next_state, reward, done, info = self.env.step(action, mode)
+                next_state, reward, done, info = self.env.step(action, mode=mode)
                 # buffer the experience
                 self.agent.cache(state, action, reward, done, next_state)
                 # learn from the experience
