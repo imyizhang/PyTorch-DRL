@@ -10,7 +10,7 @@ class EpisodeLogger:
         self.episode_actions = []
         self.episode_duration = []
         self.episode_reward = []
-        self.episode_tolerance = []
+        self.episode_state_in_tolerance = []
         self.episode_loss = []
         self._init()
 
@@ -32,7 +32,7 @@ class EpisodeLogger:
 
     @property
     def tolerance(self):
-        return self.episode_tolerance
+        return self.episode_state_in_tolerance
 
     @property
     def losses(self):
@@ -43,7 +43,7 @@ class EpisodeLogger:
         self._actions = []
         self._rewards = []
         self._steps_done = 0
-        self._tolerance_aggregator = 0
+        self._sate_in_tolerance_aggregator = 0
         self._loss_aggregator = 0.0
 
     def reset(self, state):
@@ -73,6 +73,6 @@ class EpisodeLogger:
         self.episode_actions.append(self._actions)
         self.episode_reward.append(self._rewards)
         self.episode_duration.append(self._steps_done)
-        self.episode_tolerance.append(self._tolerance_aggregator / self._steps_done)
+        self.episode_state_in_tolerance.append(self._tolerance_aggregator / self._steps_done)
         self.episode_loss.append(self._loss_aggregator / self._steps_done)
         self._init()
