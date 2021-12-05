@@ -43,7 +43,7 @@ class EpisodeLogger:
         self._actions = []
         self._rewards = []
         self._steps_done = 0
-        self._sate_in_tolerance_aggregator = 0
+        self._state_in_tolerance_aggregator = 0
         self._loss_aggregator = 0.0
 
     def reset(self, state):
