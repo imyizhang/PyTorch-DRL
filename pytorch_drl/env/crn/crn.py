@@ -251,7 +251,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # noise corrupted actions taken, unknown for replay
         _actions_taken = None if replay else self._actions_taken
         # noise corrupted G (and t) observed
-        if self._mode == 'human':
+        if self._observation_mode == 'human':
             # perfect R, P, G states, unknown for replay
             _trajectory = None if replay else self._trajectory
             # noise corrupted G
