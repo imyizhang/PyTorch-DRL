@@ -35,7 +35,7 @@ class Env(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def render(self, mode: str = 'human'):
+    def render(self):
         raise NotImplementedError
 
     def close(self):
