@@ -64,7 +64,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         observation_noise: float = 1e-3,
         action_noise: float = 1e-3,
         theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
-        mode: str = 'human'
+        observation_mode: str = 'partially_observed'
     ) -> None:
         super().__init__()
         # reference trajectory generator
@@ -86,7 +86,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
                               [0.0, 0.0]])
         # mode, either noise corrupted G (and t) or perfect R, P, G (and t)
         # would be observed by an agent
-        self._observation_mode = mode
+        self._observation_mode = observation_mode
         # initialize
         self._init()
 
