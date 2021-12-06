@@ -191,7 +191,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         action = np.clip(action, 0.0, 1.0)
         self._actions_taken.append(action)
         # state
-        delta = 0.1  # environment dynamics simulation sampling rate
+        delta = 0.1  # system dynamics simulation sampling rate
         sol = solve_ivp(
             self._func,
             (0, self._T_s + delta),
@@ -200,6 +200,8 @@ class ContinuousTimeDiscreteActionCRN(Env):
             args=(action,),
         )
         state = sol.y[:, -1]
+        state += self._rng.normal(0.0, self._system_noise)
+        state = np.clip(state, 0.0, np.inf)
         self._trajectory.append(state)
         # observation
         observation = self._observe(state)
