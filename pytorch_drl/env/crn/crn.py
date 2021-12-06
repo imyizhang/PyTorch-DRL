@@ -71,6 +71,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         sampling_rate: float = 10,
         observation_noise: float = 1e-3,
         action_noise: float = 1e-3,
+        system_noise: float = 1e-3,
         theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
         observation_mode: str = 'partially_observed',
     ) -> None:
@@ -83,6 +84,8 @@ class ContinuousTimeDiscreteActionCRN(Env):
         self._observation_noise = observation_noise
         # action noise
         self._action_noise = action_noise
+        # system noise
+        self._system_noise = system_noise
         # parameters for continuous-time fold-change model
         self._theta = theta
         self._d_r, self._d_p, self._k_m, self._b_r = self._theta
