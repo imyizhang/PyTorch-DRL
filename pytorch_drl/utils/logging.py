@@ -56,7 +56,7 @@ class EpisodeLogger:
         _state = state.view(-1).cpu().detach().numpy()
         # noise corrupted G (and t) observed
         if _state.ndim < 3:
-            self._trajectory.append(np.concatenate([_state, _state, _state], axis=0))
+            self._trajectory.append(_state.repeat(3, axis=0))
             self._observations.append(_state)
         # perfect R, P, G (and t) observed
         else:
