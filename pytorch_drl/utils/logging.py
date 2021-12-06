@@ -79,7 +79,7 @@ class EpisodeLogger:
             self._trajectory.append(info['state'])
             self._observations.append(_state)
         # perfect R, P, G (and t) observed
-        elif:
+        else:
             self._trajectory.append(_state)
             self._observations.append(info['observation'])
         self._actions.append(_action)
