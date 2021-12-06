@@ -8,10 +8,10 @@ from .base_net import BaseActor, DummyActor, BaseCritic
 
 class ConstantActor(DummyActor):
 
-    def __init__(self, action_dim):
+    def __init__(self, action_dim, value=None):
         super().__init__()
         # continuous action space
-        self.action = torch.empty(size=(1, action_dim)).uniform_(0, 1)
+        self.action = torch.empty(size=(1, action_dim)).uniform_(0, 1) if value is None else torch.tensor([[value]])
 
     def configure_sampler(self):
         return self.action

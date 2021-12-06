@@ -8,14 +8,14 @@ from .base_net import BaseActor, DummyActor, BaseCritic
 
 class ConstantActor(DummyActor):
 
-    def __init__(self, action_dim):
+    def __init__(self, action_dim, value=None):
         super().__init__()
         # discrete action space
         self.action = torch.randint(
             low=0,
             high=action_dim,
             size=(1, 1),
-        )
+        ) if value is None else torch.tensor([[value]])
 
     def configure_sampler(self):
         return self.action
