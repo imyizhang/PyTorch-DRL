@@ -152,7 +152,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         state = np.ones((3,))  # R = P = G = 1
         self._trajectory.append(state)
         # observation
-        observation = self._observe(state)
+        observation = state[[2]]  # G = 1
         self._observations.append(observation)
         # noise corrupted G (and t) observed
         if self._observation_mode == 'partially_observed':
@@ -215,6 +215,12 @@ class ContinuousTimeDiscreteActionCRN(Env):
         done = False
         # info
         info = {'tolerance': self._compute_reward(state[2], reference[0], 'tolerance')}
+        # noise corrupted G (and t) observed
+        if self._observation_mode == 'partially_observed':
+            info['state'] = state
+        # perfect R, P, G (and t) observed
+        else:
+            info['observation'] = observation
         # step
         self._steps_done += 1
         # noise corrupted G (and t) observed
@@ -254,10 +260,11 @@ class ContinuousTimeDiscreteActionCRN(Env):
         render_mode: str = 'human',
         actions: typing.Optional[typing.List] = None,
         trajectory: typing.Optional[typing.List] = None,
+        observations: typing.Optional[typing.List] = None,
         rewards: typing.Optional[typing.List] = None,
         steps_done: typing.Optional[int] = None
     ) -> None:
-        replay = not ((not actions) and (not trajectory) and (not rewards) or (not steps_done))
+        replay = not ((not actions) and (not trajectory) and (not observations) and (not rewards) or (not steps_done))
         if (self.state is None) and (not replay):
             raise RuntimeError
         # for replay
@@ -265,18 +272,10 @@ class ContinuousTimeDiscreteActionCRN(Env):
         _actions = actions if replay else self._actions
         # noise corrupted actions taken, unknown for replay
         _actions_taken = None if replay else self._actions_taken
-        # noise corrupted G (and t) observed
-        if self._observation_mode == 'partially_observed':
-            # perfect R, P, G states, unknown for replay
-            _trajectory = None if replay else self._trajectory
-            # noise corrupted G
-            _observations = trajectory if replay else self._observations
-        # perfect R, P, G (and t) observed
-        else:
-            # perfect R, P, G states
-            _trajectory = trajectory if replay else self._trajectory
-            # noise corrupted G, unknown for replay
-            _observations = None if replay else self._observations
+        # perfect R, P, G states
+        _trajectory = trajectory if replay else self._trajectory
+        # noise corrupted G observation
+        _observations = observations if replay else self._observations
         # reward measuring the distance between perfect G and reference trajectory
         _rewards = rewards if replay else self._rewards
         # steps done
@@ -289,9 +288,9 @@ class ContinuousTimeDiscreteActionCRN(Env):
         ref_trajectory, tolerance_margin = self.ref_trajectory(t)
         # sfGFP
         T = np.arange(0, self._T_s * _steps_done + self._T_s, self._T_s)
-        R, P, G = np.stack(_trajectory, axis=1) if _trajectory is not None else (None, None, None)
+        R, P, G = np.stack(_trajectory, axis=1)
         # fluorescent sfGFP observed
-        G_observed = np.concatenate(_observations, axis=0) if _observations is not None else None
+        G_observed = np.concatenate(_observations, axis=0)
         # intensity
         t_u = np.concatenate([
             np.arange(self._T_s * i, self._T_s * (i + 1) + 1) for i in range(_steps_done)
@@ -313,10 +312,8 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot fluorescent sfGFP
             axs[0].plot(t, ref_trajectory, '--', color='grey')
             axs[0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            if G is not None:
-                axs[0].plot(T, G, 'o-', label='G', color='green')
-            if G_observed is not None:
-                axs[0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
+            axs[0].plot(T, G, 'o-', label='G', color='green')
+            axs[0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
             axs[0].set_ylabel('fluorescent sfGFP (1/min)')
             axs[0].legend(framealpha=0.2)
             # subplot intensity
@@ -339,12 +336,10 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot sfGFP
             axs[0, 0].plot(t, ref_trajectory, '--', color='grey')
             axs[0, 0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            if (R is not None) and (P is not None) and (G is not None):
-                axs[0, 0].plot(T, R, 'o-', label='R', color='red')
-                axs[0, 0].plot(T, P, 'o-', label='P', color='blue')
-                axs[0, 0].plot(T, G, 'o-', label='G', color='green')
-            if G_observed is not None:
-                axs[0, 0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
+            axs[0, 0].plot(T, R, 'o-', label='R', color='red')
+            axs[0, 0].plot(T, P, 'o-', label='P', color='blue')
+            axs[0, 0].plot(T, G, 'o-', label='G', color='green')
+            #axs[0, 0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
             axs[0, 0].set_ylabel('sfGFP (1/min)')
             axs[0, 0].legend(framealpha=0.2)
             # subplot intensity
@@ -357,10 +352,8 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot fluorescent sfGFP
             axs[0, 1].plot(t, ref_trajectory, '--', color='grey')
             axs[0, 1].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            if G is not None:
-                axs[0, 1].plot(T, G, 'o-', label='G', color='green')
-            if G_observed is not None:
-                axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
+            axs[0, 1].plot(T, G, 'o-', label='G', color='green')
+            axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
             axs[0, 1].set_ylabel('fluorescent sfGFP (1/min)')
             axs[0, 1].legend(framealpha=0.2)
             # subplot reward
@@ -552,7 +545,10 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         # done
         done = False
         # info
-        info = {'tolerance': self._compute_reward(state[2], reference[0], 'tolerance')}
+        info = {
+            'G': state[2],
+            'tolerance': self._compute_reward(state[2], reference[0], 'tolerance'),
+        }
         # step
         self._steps_done += 1
         # noise corrupted G (and t) observed

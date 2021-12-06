@@ -7,6 +7,7 @@ class EpisodeLogger:
     def __init__(self):
 
         self.episode_trajectory = []
+        self.episode_observation = []
         self.episode_action = []
         self.episode_duration = []
         self.episode_reward = []
@@ -17,6 +18,10 @@ class EpisodeLogger:
     @property
     def trajectories(self):
         return self.episode_trajectory
+
+    @property
+    def observations(self):
+        return self.episode_observation
 
     @property
     def actions(self):
@@ -40,6 +45,7 @@ class EpisodeLogger:
 
     def _init(self):
         self._trajectory = []
+        self._observations = []
         self._actions = []
         self._rewards = []
         self._steps_done = 0
@@ -48,7 +54,14 @@ class EpisodeLogger:
 
     def reset(self, state):
         _state = state.view(-1).cpu().detach().numpy()
-        self._trajectory.append(_state)
+        # noise corrupted G (and t) observed
+        if _state.ndim < 3:
+            self._trajectory.append(_state)
+            self._observations.append(_state)
+        # perfect R, P, G (and t) observed
+        else:
+            self._trajectory.append(_state)
+            self._observations.append(_state[[2]])
 
     def step(self, env, state, action, reward, info, loss):
         # torch.tensor -> numpy.ndarray
@@ -61,7 +74,14 @@ class EpisodeLogger:
         _reward = reward.cpu().detach().item()
         _loss =  loss.cpu().detach().item()
         # step
-        self._trajectory.append(_state)
+        # noise corrupted G (and t) observed
+        if _state.ndim < 3:
+            self._trajectory.append(info['state'])
+            self._observations.append(_state)
+        # perfect R, P, G (and t) observed
+        elif:
+            self._trajectory.append(_state)
+            self._observations.append(info['observation'])
         self._actions.append(_action)
         self._rewards.append(_reward)
         self._steps_done += 1
@@ -70,6 +90,7 @@ class EpisodeLogger:
 
     def episode(self):
         self.episode_trajectory.append(self._trajectory)
+        self.episode_observation.append(self._observations)
         self.episode_action.append(self._actions)
         self.episode_reward.append(self._rewards)
         self.episode_duration.append(self._steps_done)
