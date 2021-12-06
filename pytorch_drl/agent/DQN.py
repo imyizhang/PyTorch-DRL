@@ -20,7 +20,6 @@ class DQNAgent(BaseAgent):
         buffer_capacity=10000,
         batch_size=128,
         sync_step=10,
-        exploration_noise=0.1,
         exploration_rate=0.9,
         exploration_rate_min=0.05,
         exploration_rate_decay=200,
@@ -34,7 +33,6 @@ class DQNAgent(BaseAgent):
             batch_size,
             sync_step,
         )
-        self.exploration_noise = exploration_noise
         self.exploration_rate = exploration_rate
         self.exploration_rate_min = exploration_rate_min
         self.exploration_rate_decay = exploration_rate_decay

@@ -21,16 +21,16 @@ class BaseAgent(abc.ABC):
         sync_step,
     ):
         self.device = device
-        self.actor = actor.to(device)
-        self.critic = critic.to(device)
-        self.actor_optim = actor.configure_optimizer()
-        self.actor_criterion = actor.configure_criterion()
-        self.critic_optim = critic.configure_optimizer()
-        self.critic_criterion = critic.configure_criterion()
-        self.gamma = discount_factor
-        self.buffer = ReplayBuffer(buffer_capacity)
-        self.batch_size = batch_size
-        self.sync_step = sync_step
+        self.actor = actor.to(device) if actor is not None else None
+        self.critic = critic.to(device) if critic is not None else None
+        self.actor_optim = actor.configure_optimizer() if actor is not None else None
+        self.actor_criterion = actor.configure_criterion() if actor is not None else None
+        self.critic_optim = critic.configure_optimizer() if critic is not None else None
+        self.critic_criterion = critic.configure_criterion() if critic is not None else None
+        self.gamma = discount_factor if discount_factor is not None else None
+        self.buffer = ReplayBuffer(buffer_capacity) if buffer_capacity is not None else None
+        self.batch_size = batch_size if batch_size is not None else None
+        self.sync_step = sync_step if sync_step is not None else None
 
     @abc.abstractmethod
     def act(self):
@@ -63,4 +63,5 @@ class BaseAgent(abc.ABC):
         raise NotImplementedError
 
     def sync_critic(self):
-        self.critic.load_state_dict(self.actor.state_dict())
+        if (actor is not None) and (critic is not None):
+            self.critic.load_state_dict(self.actor.state_dict())

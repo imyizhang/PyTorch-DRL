@@ -28,6 +28,26 @@ class BaseActor(torch.nn.Module):
         raise NotImplementedError
 
 
+class DummyActor(BaseActor):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, state):
+        raise RuntimeError
+
+    def configure_optimizer(self):
+        return None
+
+    def configure_criterion(self):
+        return None
+
+    # return action sampler
+    @abc.abstractmethod
+    def configure_sampler(self):
+        raise NotImplementedError
+
+
 class BaseCritic(torch.nn.Module):
 
     def __init__(self):

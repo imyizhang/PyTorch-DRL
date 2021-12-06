@@ -7,13 +7,13 @@ from .base_trainer import BaseTrainer
 from pytorch_drl.utils import EpisodeLogger
 
 
-class OffPolicyTrainer(BaseTrainer):
+class DummyTrainer(BaseTrainer):
 
     def __init__(
         self,
         env,
         agent,
-        num_episodes=10,
+        num_episodes=1,
         num_timesteps=None,
     ):
         super().__init__(
@@ -34,11 +34,11 @@ class OffPolicyTrainer(BaseTrainer):
             timesteps = itertools.count() if self.num_timesteps is None else range(self.num_timesteps)
             for step in timesteps:
                 # select an action
-                action = self.agent.act(state)
+                action = self.agent.act()
                 # perform the action and observe new state
                 next_state, reward, done, info = self.env.step(action, reward_func=reward_func)
                 # buffer the experience
-                self.agent.cache(state, action, reward, done, next_state)
+                #self.agent.cache(state, action, reward, done, next_state)
                 # learn from the experience
                 loss = self.agent.learn()
                 # step logging
@@ -51,7 +51,5 @@ class OffPolicyTrainer(BaseTrainer):
                 #    break
             # episode logging
             self.logger.episode()
-            if episode % self.agent.sync_step == 0:
-                self.agent.sync_critic()
         self.env.close()
         return self.logger

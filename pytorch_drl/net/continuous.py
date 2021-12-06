@@ -3,7 +3,29 @@
 
 import torch
 
-from .base_net import BaseActor, BaseCritic
+from .base_net import BaseActor, DummyActor, BaseCritic
+
+
+class ConstantActor(DummyActor):
+
+    def __init__(self, action_dim):
+        super().__init__()
+        # continuous action space
+        self.action = torch.empty(size=(1, action_dim)).uniform_(0, 1)
+
+    def configure_sampler(self):
+        return self.action
+
+
+class RandomActor(DummyActor):
+
+    def __init__(self, action_dim):
+        super().__init__()
+        self.action_dim = action_dim
+
+    def configure_sampler(self):
+        # continuous action space
+        return torch.empty(size=(1, self.action_dim)).uniform_(0, 1)
 
 
 class MLP(torch.nn.Module):

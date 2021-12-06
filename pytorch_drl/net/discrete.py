@@ -3,7 +3,37 @@
 
 import torch
 
-from .base_net import BaseActor, BaseCritic
+from .base_net import BaseActor, DummyActor, BaseCritic
+
+
+class ConstantActor(DummyActor):
+
+    def __init__(self, action_dim):
+        super().__init__()
+        # discrete action space
+        self.action = torch.randint(
+            low=0,
+            high=action_dim,
+            size=(1, 1),
+        )
+
+    def configure_sampler(self):
+        return self.action
+
+
+class RandomActor(DummyActor):
+
+    def __init__(self, action_dim):
+        super().__init__()
+        self.action_dim = action_dim
+
+    def configure_sampler(self):
+        # discrete action space
+        return torch.randint(
+            low=0,
+            high=self.action_dim,
+            size=(1, 1),
+        )
 
 
 class MLP(torch.nn.Module):
