@@ -384,6 +384,7 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
         sampling_rate: float = 10,
         observation_noise: float = 1e-3,
         action_noise: float = 1e-3,
+        system_noise: float = 1e-3,
         theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
         observation_mode: str = 'partially_observed',
     ) -> None:
@@ -392,6 +393,7 @@ class ContinuousTimeContinuousActionCRN(ContinuousTimeDiscreteActionCRN):
             sampling_rate,
             observation_noise,
             action_noise,
+            system_noise,
             theta,
             observation_mode,
     )
@@ -421,6 +423,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
         sampling_rate: float = 10,
         observation_noise: float = 1e-3,
         action_noise: float = 1e-3,
+        system_noise: float = 1e-3,
         theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
         observation_mode: str = 'partially_observed',
     ) -> None:
@@ -429,6 +432,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
             sampling_rate,
             observation_noise,
             action_noise,
+            system_noise,
             theta,
             observation_mode,
     )
@@ -436,9 +440,7 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
     def step(
         self,
         action: typing.Union[float, np.ndarray],
-        mode: str,
-        action_noise: float = 1e-3,
-        observation_noise: float = 1e-3
+        reward_func: str,
     ):
         if self.state is None:
             raise RuntimeError
@@ -535,23 +537,28 @@ class StochasticContinuousTimeDiscreteActionCRN(ContinuousTimeDiscreteActionCRN)
             r = self._rng.uniform(0, 1)
             Pk[loc] = Pk[loc] + np.log(1/r)
         ####
-        state = sol[:,count]
+        state = sol[:, count]
+        state += self._rng.normal(0.0, self._system_noise)
+        state = np.clip(state, 0.0, np.inf)
         self._trajectory.append(state)
         # observation
-        observation = state[3]  # gene copy number added here vs. deterministic case
-        observation += self._rng.normal(0.0, observation_noise)
-        observation = np.clip(observation, 0.0, np.inf)
+        observation = self._observe(state)
         self._observations.append(observation)
         # reward
-        reference = self.ref_trajectory(np.array([self._steps_done * self._T_s]))[0][0]
-        reward = self.compute_reward(observation, reference, mode)
+        T = np.array([self._steps_done * self._T_s])
+        reference = self.ref_trajectory(T)[0]
+        reward = self._compute_reward(state[2], reference[0], reward_func)
         self._rewards.append(reward)
         # done
         done = False
         # info
-        info = {'tolerance': self.compute_reward(observation, reference, 'tolerance')}
+        info = {'tolerance': self._compute_reward(state[2], reference[0], 'tolerance')}
         # step
         self._steps_done += 1
+        # noise corrupted G (and t) observed
+        if self._observation_mode == 'partially_observed':
+            return observation, reward, done, info
+        # perfect R, P, G (and t) observed
         return state, reward, done, info
 
 
