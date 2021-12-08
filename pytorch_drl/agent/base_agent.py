@@ -63,5 +63,5 @@ class BaseAgent(abc.ABC):
         raise NotImplementedError
 
     def sync_critic(self):
-        if (actor is not None) and (critic is not None):
+        if (self.actor is not None) and (self.critic is not None):
             self.critic.load_state_dict(self.actor.state_dict())
