@@ -41,11 +41,11 @@ class OffPolicyTrainer(BaseTrainer):
                 self.agent.cache(state, action, reward, done, next_state)
                 # learn from the experience
                 loss = self.agent.learn()
-                # step logging
-                self.logger.step(self.env, state, action, reward, info, loss)
-                print(episode, step, reward.item(), loss.item())
                 # update the state
                 state = next_state
+                # step logging
+                self.logger.step(self.env, action, state, reward, info, loss)
+                print(episode, step, reward.item(), loss.item())
                 # check if end
                 #if done
                 #    break

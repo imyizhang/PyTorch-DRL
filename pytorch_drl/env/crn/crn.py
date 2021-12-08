@@ -218,8 +218,10 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # noise corrupted G (and t) observed
         if self._observation_mode == 'partially_observed':
             info['state'] = state
+            #info['observation'] = observation
         # perfect R, P, G (and t) observed
         else:
+            #info['state'] = state
             info['observation'] = observation
         # step
         self._steps_done += 1
