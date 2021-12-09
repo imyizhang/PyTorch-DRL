@@ -239,7 +239,10 @@ class ContinuousTimeDiscreteActionCRN(Env):
     ) -> typing.Union[float, int]:
         tolerance = self.ref_trajectory.tolerance
         abs_diff = abs(desired_goal - achieved_goal)
-        if func == 'negative_abs':
+        alpha = 0.5
+        if func == 'negative_square':
+            reward = -abs_diff ** 2
+        elif func == 'negative_abs':
             reward = -abs_diff
         elif func == 'negative_logabs':
             reward = -np.log(abs_diff)
@@ -248,11 +251,11 @@ class ContinuousTimeDiscreteActionCRN(Env):
         elif func == 'inverse_abs':
             reward = 1. / abs_diff
         elif func == 'percentage':
-            reward = 1. - abs_diff / desired_goal
+            reward = 1. - (abs_diff / desired_goal) ** alpha
         elif func == 'tolerance':
             reward = 1 if (abs_diff / desired_goal < tolerance) else 0
         elif func == 'percentage_tolerance':
-            reward = (1. - abs_diff / desired_goal) if (abs_diff / desired_goal < tolerance) else 0.
+            reward = (1. - (abs_diff / desired_goal) ** alpha) if (abs_diff / desired_goal < tolerance) else 0.
         else:
             raise RuntimeError
         return reward

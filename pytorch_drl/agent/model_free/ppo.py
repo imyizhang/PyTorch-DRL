@@ -6,10 +6,14 @@ import math
 
 import torch
 
-from .base_agent import BaseAgent
+from ..base_agent import BaseAgent
 
 
 class PPOAgent(BaseAgent):
+    """Proximal Policy Optimization (PPO).
+
+    "Proximal Policy Optimization Algorithms" (2017). arxiv.org/abs/1707.06347
+    """
 
     def __init__(
         self,

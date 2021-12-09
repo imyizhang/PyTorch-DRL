@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import copy
-import random
-import math
-
 import torch
 
-from .base_agent import BaseAgent
+from .dqn import DQNAgent
 
 
-class DDPGAgent(BaseAgent):
+class DoubleDQNAgent(DQNAgent):
+    """Double DQN.
+
+    "Deep Reinforcement Learning with Double Q-learning" (2015). arxiv.org/abs/1509.06461
+    """
 
     def __init__(
         self,
@@ -67,14 +67,23 @@ class DDPGAgent(BaseAgent):
 
     def learn(self):
         state, action, reward, done, next_state = self.recall()
+        # Q Learning side of DDPG
         Q = self.critic(state, action)
         with torch.no_grad():
             next_Q = self.critic_target(next_state, self.actor_target(next_state))
         Q_expected = reward + mask * next_Q
-        self.critic_optim.zero_grad()
-        loss = self.critic_criterion(Q, Q_expected)
-        loss.backward()
-        self.critic_optim.step()
-        for param_target, param in zip(self.critic_target.parameters(), self.critic.parameters()):
-            param_target.data.copy_(param_target.data * tau + tar.data * (1.0 - tau))
-        return loss
+        # update critic
+        critic_loss = self.critic_criterion(Q, Q_expected)
+        self._update_network(self.critic_optimizer, critic_loss)
+        # update target critic
+        self._update_target_network(self.critic_target, self.critic, tau)
+        # policy learning side of DDPG
+        self.critic(state, self.actor(state)).mean()
+        # update actor
+        self._update_network(self.actor_optimizer, actor_loss)
+        # update target actor
+        self._update_target_network(self.actor_target, self.actor, tau)
+        return {
+            'actor_loss': actor_loss,
+            'critic_loss': critic_loss,
+        }

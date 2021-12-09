@@ -3,14 +3,7 @@
 
 from .base_agent import BaseAgent
 from .dummy_agent import DummyAgent
-from .DQN import DQNAgent
-from .DDPG import DDPGAgent
-from .PPO import PPOAgent
+from .discrete import *
+from .continuous import *
 
-__all__ = (
-    'BaseAgent',
-    'DummyAgent',
-    'DQNAgent',
-    'DDPGAgent',
-    'PPOAgent',
-)
+__all__ = ('BaseAgent', 'DummyAgent')
