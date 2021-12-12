@@ -20,6 +20,7 @@ class ERScheduler(abc.ABC):
         self.start_er = getattr(agent, 'eps_threshold')
         self.end_er = end_er
         self.curr_er = self.start_er
+        # intrinsic step counter
         self.curr_step = 0
 
     def __call__(self):
@@ -28,10 +29,13 @@ class ERScheduler(abc.ABC):
     def __repr__(self) -> str:
         return self.__class__.__name__ + '()'
 
+    def reset(self):
+        self.curr_step = 0
+
     def step(self):
         # step
         self.curr_step += 1
-        # update current exploration rate, self.curr_er
+        # update current exploration rate, self.curr_er, with intrinsic step
         self()
         # update self.agent.eps_threshold
         setattr(self.agent, 'eps_threshold', self.curr_er)

@@ -19,15 +19,15 @@ class PPOAgent(BaseAgent):
         device,
         actor,
         critic,
-        discount_factor=0.999,
+        discount_factor=0.99,
         learning_rate=1e-3,
-        buffer_capacity=1e4,
+        buffer_capacity=10000,
         batch_size=32,
         exploration_noise=0.1,
         burnin_size=32,
         learn_every=1,
         sync_every=1,
-        sync_coefficient=1e-3,
+        sync_coefficient=0.005,
     ):
         # initialize critic Q(s, a), actor pi(s) and experience replay buffer R
         super().__init__(

@@ -6,7 +6,6 @@ import random
 import torch
 
 from .dqn import DQNAgent
-from pytorch_drl.utils.er_scheduler import ConstantER
 
 
 class C51Agent(DQNAgent):
@@ -20,12 +19,11 @@ class C51Agent(DQNAgent):
         device,
         actor,
         critic,
-        discount_factor=0.999,
+        discount_factor=0.99,
         learning_rate=1e-3,
-        buffer_capacity=1e4,
+        buffer_capacity=10000,
         batch_size=32,
         exploration_rate=0.1,
-        er_scheduler=ConstantER,
         burnin_size=32,
         learn_every=4,
         sync_every=8,
@@ -44,7 +42,6 @@ class C51Agent(DQNAgent):
             buffer_capacity,
             batch_size,
             exploration_rate,
-            er_scheduler,
             burnin_size,
             learn_every,
             sync_every,
@@ -59,8 +56,6 @@ class C51Agent(DQNAgent):
         else:
             with torch.no_grad():
                 action = self.critic(state).max(dim=1, keepdim=True).indices
-        # exploration rate decay
-        self.er_scheduler.step()
         # step
         self.curr_step += 1
         return action

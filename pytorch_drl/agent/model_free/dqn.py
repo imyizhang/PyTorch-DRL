@@ -7,7 +7,6 @@ import random
 import torch
 
 from ..base_agent import BaseAgent
-from pytorch_drl.utils.er_scheduler import ConstantER
 
 
 class DQNAgent(BaseAgent):
@@ -21,12 +20,11 @@ class DQNAgent(BaseAgent):
         device,
         actor,
         critic,
-        discount_factor=0.999,
+        discount_factor=0.99,
         learning_rate=1e-3,
-        buffer_capacity=1e4,
+        buffer_capacity=10000,
         batch_size=32,
         exploration_rate=0.1,
-        er_scheduler=ConstantER,
         burnin_size=32,
         learn_every=1,
         sync_every=4,
@@ -45,7 +43,6 @@ class DQNAgent(BaseAgent):
         self.critic_target = copy.deepcopy(self.critic)
         # hyperparameters for `act`
         self.eps_threshold = exploration_rate
-        self.er_scheduler = er_scheduler(self)
         # hyperparameters for `learn`
         self.burnin_size = burnin_size
         self.learn_every = learn_every
@@ -66,8 +63,6 @@ class DQNAgent(BaseAgent):
         else:
             with torch.no_grad():
                 action = self.critic(state).max(dim=1, keepdim=True).indices
-        # exploration rate decay
-        self.er_scheduler.step()
         # step
         self.curr_step += 1
         return action

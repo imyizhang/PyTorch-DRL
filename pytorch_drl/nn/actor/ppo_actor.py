@@ -13,7 +13,7 @@ class PPOActor(BaseActor):
         self,
         state_dim,
         action_dim,
-        approximator_dims=(256, 256, 256,),
+        approximator_dims=(256, 256,),
         approximator_activation=torch.nn.Sigmoid(),
         approximator=MLPApproximator,
     ):
@@ -59,7 +59,7 @@ class DiscretePPOActor(BaseActor):
         self,
         state_dim,
         action_dim,
-        approximator_dims=(256, 256, 256,),
+        approximator_dims=(256, 256,),
         approximator_activation=torch.nn.Sigmoid(),
         approximator=MLPApproximator,
     ):

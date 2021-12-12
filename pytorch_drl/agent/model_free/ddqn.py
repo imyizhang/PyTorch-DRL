@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import random
+
 import torch
 
 from .dqn import DQNAgent
-from pytorch_drl.utils.er_scheduler import ConstantER
 
 
 class DDQNAgent(DQNAgent):
@@ -18,12 +19,11 @@ class DDQNAgent(DQNAgent):
         device,
         actor,
         critic,
-        discount_factor=0.999,
+        discount_factor=0.99,
         learning_rate=1e-3,
-        buffer_capacity=1e4,
+        buffer_capacity=10000,
         batch_size=32,
         exploration_rate=0.1,
-        er_scheduler=ConstantER,
         burnin_size=32,
         learn_every=4,
         sync_every=8,
@@ -42,7 +42,6 @@ class DDQNAgent(DQNAgent):
             buffer_capacity,
             batch_size,
             exploration_rate,
-            er_scheduler,
             burnin_size,
             learn_every,
             sync_every,
@@ -59,8 +58,6 @@ class DDQNAgent(DQNAgent):
         # exploit, a = pi^{*}(s) = argmax_{a} Q^{*}(s, a)
         else:
             action = Q_distribution.max(dim=1, keepdim=True).indices
-        # exploration rate decay
-        self.er_scheduler.step()
         # step
         self.curr_step += 1
         return action
@@ -87,7 +84,7 @@ class DDQNAgent(DQNAgent):
             next_Q = torch.min(*self.critic_target.get_twin(next_state)).max(dim=1, keepdim=True).values
             # compute expected Q^{*}(s, a) = r(s, a) + gamma * max_{a'} Q^{*}(s', a')
             Q_target = reward + self.gamma * next_Q
-        # update critic by minimizing the loss of TD error
+        # update critic by minimizing sum of loss of TD error
         critic_loss = self.critic_criterion(Q1, Q_target) + self.critic_criterion(Q2, Q_target)
         self._update_nn(self.critic_optim, critic_loss)
         return {

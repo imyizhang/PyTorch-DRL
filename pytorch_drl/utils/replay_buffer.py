@@ -14,8 +14,8 @@ Experience = collections.namedtuple(
 class ReplayBuffer(object):
 
     def __init__(self, capacity):
-        self.capacity = int(capacity)
-        self.memory = collections.deque([], maxlen=int(capacity))
+        self.capacity = capacity
+        self.memory = collections.deque([], maxlen=capacity)
 
     def __len__(self):
         return len(self.memory)
