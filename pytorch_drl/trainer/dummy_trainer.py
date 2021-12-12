@@ -34,18 +34,17 @@ class DummyTrainer(BaseTrainer):
             timesteps = itertools.count() if self.num_timesteps is None else range(self.num_timesteps)
             for step in timesteps:
                 # select an action
-                action = self.agent.act()
+                action = self.agent.act(state)
                 # perform the action and observe new state
                 next_state, reward, done, info = self.env.step(action, reward_func=reward_func)
                 # buffer the experience
                 #self.agent.cache(state, action, reward, done, next_state)
                 # learn from the experience
-                loss = self.agent.learn()
+                losses = self.agent.learn()
                 # update the state
                 state = next_state
                 # step logging
-                self.logger.step(self.env, action, state, reward, info, loss)
-                print(episode, step, reward.item(), loss.item())
+                self.logger.step(self.env, action, state, reward, info, losses)
                 # check if end
                 #if done
                 #    break

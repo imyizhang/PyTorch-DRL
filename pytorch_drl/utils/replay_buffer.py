@@ -14,8 +14,8 @@ Experience = collections.namedtuple(
 class ReplayBuffer(object):
 
     def __init__(self, capacity):
-        self.capacity = capacity
-        self.memory = collections.deque([], maxlen=capacity)
+        self.capacity = int(capacity)
+        self.memory = collections.deque([], maxlen=int(capacity))
 
     def __len__(self):
         return len(self.memory)
@@ -24,7 +24,5 @@ class ReplayBuffer(object):
         self.memory.append(Experience(*transition))
 
     def sample(self, batch_size):
-        if batch_size > len(self):
-            batch_size = len(self)
         transitions = random.sample(self.memory, batch_size)
         return Experience(*zip(*transitions))

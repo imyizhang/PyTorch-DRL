@@ -1,19 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import copy
 import random
 
 import torch
 
-from ..base_agent import BaseAgent
+from .dqn import DQNAgent
 from pytorch_drl.utils.er_scheduler import ConstantER
 
 
-class DQNAgent(BaseAgent):
-    """Deep Q Network (DQN).
+class NoisyDQNAgent(DQNAgent):
+    """Noisy DQN.
 
-    "Human-Level Control Through Deep Reinforcement Learning" (2015). nature.com/articles/nature14236
+    "Noisy Networks for Exploration" (2017). arxiv.org/abs/1706.10295
     """
 
     def __init__(
@@ -28,10 +27,14 @@ class DQNAgent(BaseAgent):
         exploration_rate=0.1,
         er_scheduler=ConstantER,
         burnin_size=32,
-        learn_every=1,
-        sync_every=4,
+        learn_every=4,
+        sync_every=8,
     ):
         # initialize critic Q(s, a) and experience replay buffer R
+        # initialize target critric Q'
+        # hyperparameters for `act`
+        # hyperparameters for `learn`
+        # step counter
         super().__init__(
             device,
             actor,
@@ -40,22 +43,12 @@ class DQNAgent(BaseAgent):
             learning_rate,
             buffer_capacity,
             batch_size,
+            exploration_rate,
+            er_scheduler,
+            burnin_size,
+            learn_every,
+            sync_every,
         )
-        # initialize target critric Q'
-        self.critic_target = copy.deepcopy(self.critic)
-        # hyperparameters for `act`
-        self.eps_threshold = exploration_rate
-        self.er_scheduler = er_scheduler(self)
-        # hyperparameters for `learn`
-        self.burnin_size = burnin_size
-        self.learn_every = learn_every
-        self.sync_every = sync_every
-        # step counter
-        self.curr_step = 0
-
-    def train(self):
-        self.critic.train()
-        self.critic_target.eval()
 
     def act(self, state):
         # explore, epsilon-greedy policy

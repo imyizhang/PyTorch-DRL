@@ -14,43 +14,41 @@ class OnPolicyTrainer(BaseTrainer):
         env,
         agent,
         num_episodes=10,
+        num_timesteps=None,
     ):
         super().__init__(
             env,
             agent,
             num_episodes,
+            num_timesteps
         )
         self.logger = EpisodeLogger()
 
-    def __call__(self):
+    def __call__(self, reward_func):
         # set the agent in training mode
         self.agent.train()
         for episode in range(self.num_episodes):
             # initialize the env and state
             state = self.env.reset()
             self.logger.reset(state)
-            rewards = []
-            for step in itertools.count():
+            timesteps = itertools.count() if self.num_timesteps is None else range(self.num_timesteps)
+            for step in timesteps:
                 # select an action
                 action = self.agent.act(state)
                 # perform the action and observe new state
-                next_state, reward, done, info = self.env.step(action)
+                next_state, reward, done, info = self.env.step(action, reward_func=reward_func)
                 # buffer the experience
                 self.agent.cache(state, action, reward, done, next_state)
                 # learn from the experience
-                loss = self.agent.learn()
-                # logging
-                self.logger.step(self.env, state, action, reward, loss)
-                print(episode, step, reward.item(), loss.item())
+                losses = self.agent.learn()
                 # update the state
                 state = next_state
+                # step logging
+                self.logger.step(self.env, action, state, reward, info, losses)
                 # check if end
-                rewards.append(reward)
-                if done or sum(rewards[-10:]) / len(rewards[-10:]) > 0.95:
-                    break
-            # logging
+                #if done
+                #    break
+            # episode logging
             self.logger.episode()
-            if episode % self.agent.sync_step == 0:
-                self.agent.sync_critic()
         self.env.close()
         return self.logger

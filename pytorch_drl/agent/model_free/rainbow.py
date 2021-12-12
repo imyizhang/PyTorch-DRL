@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import copy
-import random
-
 import torch
 
-from ..base_agent import BaseAgent
+from .ddqn import DDQNAgent
 from pytorch_drl.utils.er_scheduler import ConstantER
 
 
-class DQNAgent(BaseAgent):
-    """Deep Q Network (DQN).
+class RainbowAgent(DDQNAgent):
+    """Rainbow.
 
-    "Human-Level Control Through Deep Reinforcement Learning" (2015). nature.com/articles/nature14236
+    "Rainbow: Combining Improvements in Deep Reinforcement Learning" (2017). arxiv.org/abs/1710.02298
     """
 
     def __init__(
@@ -28,10 +25,14 @@ class DQNAgent(BaseAgent):
         exploration_rate=0.1,
         er_scheduler=ConstantER,
         burnin_size=32,
-        learn_every=1,
-        sync_every=4,
+        learn_every=4,
+        sync_every=8,
     ):
         # initialize critic Q(s, a) and experience replay buffer R
+        # initialize target critric Q'
+        # hyperparameters for `act`
+        # hyperparameters for `learn`
+        # step counter
         super().__init__(
             device,
             actor,
@@ -40,32 +41,24 @@ class DQNAgent(BaseAgent):
             learning_rate,
             buffer_capacity,
             batch_size,
+            exploration_rate,
+            er_scheduler,
+            burnin_size,
+            learn_every,
+            sync_every,
         )
-        # initialize target critric Q'
-        self.critic_target = copy.deepcopy(self.critic)
-        # hyperparameters for `act`
-        self.eps_threshold = exploration_rate
-        self.er_scheduler = er_scheduler(self)
-        # hyperparameters for `learn`
-        self.burnin_size = burnin_size
-        self.learn_every = learn_every
-        self.sync_every = sync_every
-        # step counter
-        self.curr_step = 0
-
-    def train(self):
-        self.critic.train()
-        self.critic_target.eval()
 
     def act(self, state):
+        with torch.no_grad():
+            Q_distribution = self.critic(state)
         # explore, epsilon-greedy policy
         eps = random.random()
         if eps < self.eps_threshold:
-            action = self.actor.act(state)
+            action_probabilities = torch.nn.functional.softmax(Q_distribution, dim=1)
+            action = self.actor.act(state, p=action_probabilities)
         # exploit, a = pi^{*}(s) = argmax_{a} Q^{*}(s, a)
         else:
-            with torch.no_grad():
-                action = self.critic(state).max(dim=1, keepdim=True).indices
+            action = Q_distribution.max(dim=1, keepdim=True).indices
         # exploration rate decay
         self.er_scheduler.step()
         # step
@@ -88,17 +81,17 @@ class DQNAgent(BaseAgent):
         state, action, reward, done, next_state = self.recall()
         # Q learning
         # compute estimated Q^{*}(s, a)
-        Q = self.critic(state).gather(dim=1, index=action)
+        Q1, Q2 = [Q.gather(dim=1, index=action) for Q in self.critic.get_twin(state)]
         with torch.no_grad():
             # compute Q^{*}(s', a')
-            next_Q = self.critic_target(next_state).max(dim=1, keepdim=True).values
+            next_Q = torch.min(*self.critic_target.get_twin(next_state)).max(dim=1, keepdim=True).values
             # compute expected Q^{*}(s, a) = r(s, a) + gamma * max_{a'} Q^{*}(s', a')
             Q_target = reward + self.gamma * next_Q
         # update critic by minimizing the loss of TD error
-        critic_loss = self.critic_criterion(Q, Q_target)
+        critic_loss = self.critic_criterion(Q1, Q_target) + self.critic_criterion(Q2, Q_target)
         self._update_nn(self.critic_optim, critic_loss)
         return {
             'loss/actor': actor_loss,
             'loss/critic': critic_loss,
-            'Q': Q.mean(),
+            'Q': Q1.mean(),
         }

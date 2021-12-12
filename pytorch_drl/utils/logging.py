@@ -63,7 +63,7 @@ class EpisodeLogger:
             self._trajectory.append(_state)
             self._observations.append(_state[[2]])
 
-    def step(self, env, action, state, reward, info, loss):
+    def step(self, env, action, state, reward, info, losses):
         # torch.tensor -> numpy.ndarray
         if env.discrete:
             _action = action.cpu().detach().item()
@@ -72,7 +72,7 @@ class EpisodeLogger:
             _action = action.view(-1).cpu().detach().numpy()
         _state = state.view(-1).cpu().detach().numpy()
         _reward = reward.cpu().detach().item()
-        _loss =  loss.cpu().detach().item()
+        _loss = losses['loss/critic'].cpu().detach().item() if losses is not None else 0
         # step
         # noise corrupted G (and t) observed
         if _state.ndim < 3:
