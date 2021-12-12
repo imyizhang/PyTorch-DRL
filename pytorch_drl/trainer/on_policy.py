@@ -46,11 +46,11 @@ class OnPolicyTrainer(BaseTrainer):
                 next_state, reward, done, info = self.env.step(action, reward_func=reward_func)
                 # buffer the experience
                 self.agent.cache(state, action, reward, done, next_state)
-                # learn from the experience
-                losses = self.agent.learn()
                 # batch_size update for learning
                 if self.bs_scheduler is not None:
                     self.bs_scheduler.step()
+                # learn from the experience
+                losses = self.agent.learn()
                 # update the state
                 state = next_state
                 # step logging

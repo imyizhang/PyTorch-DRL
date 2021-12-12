@@ -43,17 +43,7 @@ class BSScheduler(abc.ABC):
 
 class ConstantBS(BSScheduler):
 
-    def __init__(
-        self,
-        agent,
-        update_coefficient=0,
-        end_bs=32,
-    ):
-        super().__init__(
-            agent,
-            update_coefficient,
-            end_bs,
-        )
+    def __call__(self):
         # batch
         if self.start_bs == -1:
             if not hasattr(self.agent, 'buffer'):
@@ -64,15 +54,15 @@ class ConstantBS(BSScheduler):
             pass
         # minibatch
         else:
-            pass
-
-    def __call__(self):
-        pass
+            if not hasattr(self.agent, 'buffer'):
+                raise RuntimeError
+            self.curr_bs = len(getattr(self.agent, 'buffer'))
+            self.curr_bs = min(self.start_bs, self.curr_bs)
 
 
 class LinearBS(BSScheduler):
 
     def __call__(self):
         assert self.update_coefficient > 1
-        self.curr_bs = self.end_er + (self.start_bs - self.end_er) * (1.0 - self.curr_step / self.update_coefficient)
-        self.curr_er = min(self.end_er, int(self.curr_er))
+        self.curr_bs = self.end_bs + (self.start_bs - self.end_bs) * (1.0 - self.curr_step / self.update_coefficient)
+        self.curr_bs = min(self.end_bs, int(self.curr_bs))
