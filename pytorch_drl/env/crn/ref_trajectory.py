@@ -10,7 +10,7 @@ class RefTrajectory(abc.ABC):
 
     def __init__(
         self,
-        scale: float = 1.5, # this could become a parameter
+        scale: float = 1.5,
         tolerance: float = 0.05,
     ) -> None:
         self.scale = scale
@@ -41,7 +41,7 @@ class ConstantRefTrajectory(RefTrajectory):
 
     def __init__(
         self,
-        scale: float = 1.5, # this could become a parameter
+        scale: float = 1.5,
         tolerance: float = 0.05,
     ) -> None:
         super().__init__(scale, tolerance)
@@ -52,15 +52,34 @@ class ConstantRefTrajectory(RefTrajectory):
         return self.ref_trajectory, self.tolerance_margin
 
 
+class StepRefTrajectory(RefTrajectory):
+
+    def __init__(
+        self,
+        scale: float = 1.5,
+        tolerance: float = 0.05,
+        step: float = 200.0,
+        gamma: float = 1.1,
+    ) -> None:
+        super().__init__(scale, tolerance)
+        self.step = step
+        self.gamma = gamma
+
+    def __call__(self, t: np.ndarray):
+        assert t.ndim == 1        
+        self._ref_trajectory = self.scale * (t <= self.step) + self.scale * self.gamma * (t > self.step)
+        return self.ref_trajectory, self.tolerance_margin
+
+
 class SineRefTrajectory(RefTrajectory):
 
     def __init__(
         self,
-        scale: float = 1.5, # this could become a parameter
+        scale: float = 1.5,
         tolerance: float = 0.05,
-        period: float = 200, # this could become a parameter
-        amplitude: float = 0.1, # this could become a parameter
-        phase: float = 0.0, # this could become a parameter
+        period: float = 200.0,
+        amplitude: float = 0.1,
+        phase: float = 0.0,
     ) -> None:
         super().__init__(scale, tolerance)
         self.period = period

@@ -277,27 +277,38 @@ class ContinuousTimeDiscreteActionCRN(Env):
         absolute_error = abs(desired_goal - achieved_goal)
         relative_error = absolute_error / desired_goal
         squared_error = absolute_error ** 2
+        abs_logarithmic_error = abs(np.log(desired_goal + 1) - np.log(achieved_goal + 1))
+        squared_logarithmic_error = (abs_logarithmic_error) ** 2
         reward = 0.0
         if func == 'negative_se':
             reward -= squared_error
+        elif func == 'negative_sle':
+            reward -= squared_logarithmic_error
+        elif func == 'negative_ale':
+            reward -= absolute_logarithmic_error
         elif func == 'negative_ae':
             reward -= absolute_error
-        elif func == 'negative_logabs':
+        elif func == 'negative_logae':
             reward -= np.log(absolute_error)
-        elif func == 'negative_expabs':
+        elif func == 'negative_expae':
             reward -= np.exp(absolute_error)
-        elif func == 'inverse_abs':
-            reward = 1.0 / abs_diff
+        elif func == 'inverse_ae':
+            reward = 1.0 / absolute_error
         elif func == 'negative_re':
             reward -= relative_error
+        elif func == 'negative_sqrtre':
+            reward -= relative_error ** 0.5
         elif func == 'in_tolerance':
             reward = 0.0 if self._in_tolerance else -1.0
-        elif func == 'percentage_tolerance':
+        elif func == 'scaled_se':
             reward = -squared_error * 100 + self.in_tolerance[0] * 10
+        elif func == 'scaled_sle':
+            reward = -squared_logarithmic_error * 100 + self.in_tolerance[0] * 10
         elif func == 'test':
             error = -squared_error * 100 + self.in_tolerance[0] * 10
             if self._prev_reward is not None:
                 reward = error - self._prev_reward
+            reward -= relative_error ** 0.5
             self._prev_reward = error
         else:
             raise RuntimeError
@@ -460,16 +471,16 @@ class CRN(ContinuousTimeDiscreteActionCRN):
         if self._state is None:
             return None
         # noise corrupted G, in_tolerance or perfect R, P, G, in_tolerance
-        return np.concatenate((self._state, self.in_tolerance), axis=None)
+        return np.concatenate((self._state, self.in_tolerance, self._T), axis=None)
 
     @property
     def state_dim(self) -> int:
         # noise corrupted G, in_tolerance or perfect R, P, G, in_tolerance
-        return self._state_dim + 1
+        return self._state_dim + 1 + 1
 
     def reset(self) -> np.ndarray:
         state = self._reset()
-        return np.concatenate((state, self.in_tolerance), axis=None)
+        return np.concatenate((state, self.in_tolerance, self._T), axis=None)
 
     def step(
         self,
@@ -478,7 +489,7 @@ class CRN(ContinuousTimeDiscreteActionCRN):
     ):
         state, reward, done, info = self._step(action, reward_func)
         # noise corrupted G, in_tolerance or perfect R, P, G, in_tolerance
-        return np.concatenate((state, self.in_tolerance), axis=None), reward, done, info
+        return np.concatenate((state, self.in_tolerance, self._T), axis=None), reward, done, info
 
 
 class CRNContinuous(CRN):
