@@ -52,16 +52,13 @@ class EpisodeLogger:
         self._state_in_tolerance_aggregator = 0
         self._loss_aggregator = 0.0
 
-    def reset(self, state):
-        _state = state.view(-1).cpu().detach().numpy()
-        # noise corrupted G (and t) observed
-        if _state.ndim < 3:
-            self._trajectory.append(_state.repeat(3, axis=0))
-            self._observations.append(_state)
-        # perfect R, P, G (and t) observed
-        else:
-            self._trajectory.append(_state)
-            self._observations.append(_state[[2]])
+    def reset(self):
+        # state
+        state = np.ones((3,))  # R = P = G = 1
+        self._trajectory.append(state)
+        # observation
+        observation = state[[2]]  # G = 1
+        self._observations.append(observation)
 
     def step(self, env, action, state, reward, info, losses):
         # torch.tensor -> numpy.ndarray
@@ -70,20 +67,12 @@ class EpisodeLogger:
             _action = (_action + 1) / env.action_dim
         else:
             _action = action.view(-1).cpu().detach().numpy()
-        _state = state.view(-1).cpu().detach().numpy()
+        #_state = state.view(-1).cpu().detach().numpy()
         _reward = reward.cpu().detach().item()
         _loss = losses['loss/critic'].cpu().detach().item() if losses is not None else 0
         # step
-        # noise corrupted G (and t) observed
-        if _state.ndim < 3:
-            self._trajectory.append(info['state'])
-            #self._observations.append(info['observation'])
-            self._observations.append(_state)
-        # perfect R, P, G (and t) observed
-        else:
-            self._trajectory.append(_state)
-            #self._trajectory.append(info['state'])
-            self._observations.append(info['observation'])
+        self._trajectory.append(info['state'])
+        self._observations.append(info['observation'])
         self._actions.append(_action)
         self._rewards.append(_reward)
         self._steps_done += 1

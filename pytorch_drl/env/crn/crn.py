@@ -257,15 +257,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # done
         done = False
         # info
-        info = {'in_tolerance': self._in_tolerance}
-        # noise corrupted G observed
-        if self._observation_mode == 'partially_observed':
-            info['state'] = state
-            #info['observation'] = observation
-        # perfect R, P, G observed
-        else:
-            #info['state'] = state
-            info['observation'] = observation
+        info = {'state': state, 'observation': observation, 'in_tolerance': self._in_tolerance}
         # noise corrupted G observed
         if self._observation_mode == 'partially_observed':
             return observation, reward, done, info
@@ -301,9 +293,9 @@ class ContinuousTimeDiscreteActionCRN(Env):
         elif func == 'in_tolerance':
             reward = 0.0 if self._in_tolerance else -1.0
         elif func == 'percentage_tolerance':
-            reward = -squared_error * 100 + self.in_tolerance * 10
+            reward = -squared_error * 100 + self.in_tolerance[0] * 10
         elif func == 'test':
-            error = -squared_error * 100 + self.in_tolerance * 10
+            error = -squared_error * 100 + self.in_tolerance[0] * 10
             if self._prev_reward is not None:
                 reward = error - self._prev_reward
             self._prev_reward = error
