@@ -376,7 +376,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
             axs[0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
             axs[0].plot(T, G, 'o-', label='G', color=c_G)
             axs[0].plot(T, G_observed, 'o--', label='G observed', color=c_G, alpha=0.5)
-            axs[0].set_ylabel('fluorescent sfGFP (1/min)')
+            axs[0].set_ylabel('Concentration fold change')
             axs[0].legend(framealpha=0.2)
             # subplot intensity
             axs[1].plot(t_u, u, '-', label='u', color=c_u)
@@ -402,7 +402,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
             axs[0, 0].plot(T, P, 'o-', label='P', color=c_P)
             axs[0, 0].plot(T, G, 'o-', label='G', color=c_G)
             #axs[0, 0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
-            axs[0, 0].set_ylabel('sfGFP (1/min)')
+            axs[0, 0].set_ylabel('Concentration fold change')
             axs[0, 0].legend(framealpha=0.2)
             # subplot intensity
             axs[1, 0].plot(t_u, u, '-', label='u', color=c_u)
@@ -411,12 +411,12 @@ class ContinuousTimeDiscreteActionCRN(Env):
             axs[1, 0].set_xlabel('Time (min)')
             axs[1, 0].set_ylabel('intensity (%)')
             axs[1, 0].legend(framealpha=0.2)
-            # subplot fluorescent sfGFP
+            # subplot fluorescent
             axs[0, 1].plot(t, ref_trajectory, '--', color='grey')
             axs[0, 1].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
             axs[0, 1].plot(T, G, 'o-', label='G', color=c_G)
             axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color=c_G, alpha=0.5)
-            axs[0, 1].set_ylabel('fluorescent sfGFP (1/min)')
+            axs[0, 1].set_ylabel('Concentration fold change')
             axs[0, 1].legend(framealpha=0.2)
             # subplot reward
             axs[1, 1].plot(T[1:], reward, color=c_reward)
