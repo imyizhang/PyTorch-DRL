@@ -76,7 +76,7 @@ class ContinuousTimeDiscreteActionCRN(Env):
         observation_noise: float = 1e-3,
         action_noise: float = 1e-3,
         system_noise: float = 1e-3,
-        theta: np.ndarray = np.array([d_r, d_p, k_m, b_r]),
+        theta: list = [d_r, d_p, k_m, b_r],
         observation_mode: str = 'partially_observed',
     ) -> None:
         super().__init__()
@@ -359,6 +359,9 @@ class ContinuousTimeDiscreteActionCRN(Env):
         # reward
         reward = np.array(_rewards)
         # plot
+        c_R, c_P, c_G = ['tab:red', 'purple', 'green']
+        c_u = 'tab:blue'
+        c_reward = 'tab:orange'
         if render_mode == 'human':
             fig, axs = plt.subplots(
                 nrows=2,
@@ -371,14 +374,14 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot fluorescent sfGFP
             axs[0].plot(t, ref_trajectory, '--', color='grey')
             axs[0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            axs[0].plot(T, G, 'o-', label='G', color='green')
-            axs[0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
+            axs[0].plot(T, G, 'o-', label='G', color=c_G)
+            axs[0].plot(T, G_observed, 'o--', label='G observed', color=c_G, alpha=0.5)
             axs[0].set_ylabel('fluorescent sfGFP (1/min)')
             axs[0].legend(framealpha=0.2)
             # subplot intensity
-            axs[1].plot(t_u, u, '-', label='u')
+            axs[1].plot(t_u, u, '-', label='u', color=c_u)
             if u_applied is not None:
-                axs[1].plot(t_u, u_applied, '--', label='u applied', alpha=0.5)
+                axs[1].plot(t_u, u_applied, '--', label='u applied', color=c_u, alpha=0.5)
             axs[1].set_xlabel('Time (min)')
             axs[1].set_ylabel('intensity (%)')
             axs[1].legend(framealpha=0.2)
@@ -395,28 +398,28 @@ class ContinuousTimeDiscreteActionCRN(Env):
             # subplot sfGFP
             axs[0, 0].plot(t, ref_trajectory, '--', color='grey')
             axs[0, 0].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            axs[0, 0].plot(T, R, 'o-', label='R', color='red')
-            axs[0, 0].plot(T, P, 'o-', label='P', color='blue')
-            axs[0, 0].plot(T, G, 'o-', label='G', color='green')
+            axs[0, 0].plot(T, R, 'o-', label='R', color=c_R)
+            axs[0, 0].plot(T, P, 'o-', label='P', color=c_P)
+            axs[0, 0].plot(T, G, 'o-', label='G', color=c_G)
             #axs[0, 0].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
             axs[0, 0].set_ylabel('sfGFP (1/min)')
             axs[0, 0].legend(framealpha=0.2)
             # subplot intensity
-            axs[1, 0].plot(t_u, u, '-', label='u')
+            axs[1, 0].plot(t_u, u, '-', label='u', color=c_u)
             if u_applied is not None:
-                axs[1, 0].plot(t_u, u_applied, '--', label='u applied', alpha=0.5)
+                axs[1, 0].plot(t_u, u_applied, '--', label='u applied', color=c_u, alpha=0.5)
             axs[1, 0].set_xlabel('Time (min)')
             axs[1, 0].set_ylabel('intensity (%)')
             axs[1, 0].legend(framealpha=0.2)
             # subplot fluorescent sfGFP
             axs[0, 1].plot(t, ref_trajectory, '--', color='grey')
             axs[0, 1].fill_between(t, tolerance_margin[0], tolerance_margin[1], color='grey', alpha=0.2)
-            axs[0, 1].plot(T, G, 'o-', label='G', color='green')
-            axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color='green', alpha=0.5)
+            axs[0, 1].plot(T, G, 'o-', label='G', color=c_G)
+            axs[0, 1].plot(T, G_observed, 'o--', label='G observed', color=c_G, alpha=0.5)
             axs[0, 1].set_ylabel('fluorescent sfGFP (1/min)')
             axs[0, 1].legend(framealpha=0.2)
             # subplot reward
-            axs[1, 1].plot(T[1:], reward)
+            axs[1, 1].plot(T[1:], reward, color=c_reward)
             axs[1, 1].set_xlabel('Time (min)')
             axs[1, 1].set_ylabel('reward')
             plt.show()
@@ -471,16 +474,16 @@ class CRN(ContinuousTimeDiscreteActionCRN):
         if self._state is None:
             return None
         # noise corrupted G, in_tolerance or perfect R, P, G, in_tolerance
-        return np.concatenate((self._state, self.in_tolerance, self._T), axis=None)
+        return np.concatenate((self._state, self.in_tolerance,), axis=None)
 
     @property
     def state_dim(self) -> int:
         # noise corrupted G, in_tolerance or perfect R, P, G, in_tolerance
-        return self._state_dim + 1 + 1
+        return self._state_dim + 1
 
     def reset(self) -> np.ndarray:
         state = self._reset()
-        return np.concatenate((state, self.in_tolerance, self._T), axis=None)
+        return np.concatenate((state, self.in_tolerance,), axis=None)
 
     def step(
         self,
@@ -489,7 +492,7 @@ class CRN(ContinuousTimeDiscreteActionCRN):
     ):
         state, reward, done, info = self._step(action, reward_func)
         # noise corrupted G, in_tolerance or perfect R, P, G, in_tolerance
-        return np.concatenate((state, self.in_tolerance, self._T), axis=None), reward, done, info
+        return np.concatenate((state, self.in_tolerance,), axis=None), reward, done, info
 
 
 class CRNContinuous(CRN):

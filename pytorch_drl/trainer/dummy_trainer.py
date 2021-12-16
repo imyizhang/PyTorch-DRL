@@ -30,7 +30,7 @@ class DummyTrainer(BaseTrainer):
         for episode in range(self.num_episodes):
             # initialize the env and state
             state = self.env.reset()
-            self.logger.reset(state)
+            self.logger.reset()
             timesteps = itertools.count() if self.num_timesteps is None else range(self.num_timesteps)
             for step in timesteps:
                 # select an action

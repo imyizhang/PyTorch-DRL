@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class EpisodeLogger:
@@ -87,6 +88,32 @@ class EpisodeLogger:
         self.episode_action.append(self._actions)
         self.episode_reward.append(self._rewards)
         self.episode_duration.append(self._steps_done)
-        self.episode_state_in_tolerance.append(self._state_in_tolerance_aggregator / self._steps_done)
+        self.episode_state_in_tolerance.append(self._state_in_tolerance_aggregator / self._steps_done * 100)
         self.episode_loss.append(self._loss_aggregator / self._steps_done)
         self._init()
+
+    def plot(self):
+        fig, axs = plt.subplots(
+            nrows=2,
+            ncols=1,
+            sharex=True,
+            figsize=(6, 5),
+            gridspec_kw={'height_ratios': [1, 1]}
+        )
+        #fig.tight_layout()
+        axs[0].plot([sum(r) for r in self.rewards], marker='.', color='tab:orange')
+        axs[0].set_ylabel('reward')
+        axs[0].grid(True)
+        axs[1].plot(self.tolerance, marker='.', color='tab:red')
+        axs[1].set_ylim([0, 100])
+        axs[1].set_xlabel('Episode')
+        axs[1].set_ylabel('% states in tolerance zone')
+        axs[1].grid(True)
+        plt.show()
+
+    def plot_loss(self):
+        plt.plot(self.losses, marker='.', color='tab:blue')
+        plt.xlabel('Episode')
+        plt.ylabel('loss')
+        plt.grid(True)
+        plt.show()
